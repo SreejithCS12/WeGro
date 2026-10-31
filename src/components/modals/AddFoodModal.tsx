@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X, Search, Plus, Sparkles, Check } from "lucide-react";
 import { Food, MealCategory } from "@/types/database";
 import { formatCalories } from "@/lib/utils";
@@ -37,6 +37,18 @@ export function AddFoodModal({
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFood, setSelectedFood] = useState<Food | null>(null);
   const [quantity, setQuantity] = useState<number>(100);
+
+  // Sync category whenever modal opens or initialCategory changes
+  useEffect(() => {
+    if (isOpen) {
+      if (initialCategory) {
+        setCategory(initialCategory);
+      }
+      setSearchQuery("");
+      setSelectedFood(null);
+      setIsCreatingCustom(false);
+    }
+  }, [isOpen, initialCategory]);
 
   // New Custom Food Form toggle
   const [isCreatingCustom, setIsCreatingCustom] = useState(false);
