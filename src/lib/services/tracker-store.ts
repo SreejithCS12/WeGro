@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   Profile,
   FitnessGoal,
@@ -18,7 +18,7 @@ import {
   MealCategory,
 } from "@/types/database";
 import { INITIAL_EXERCISES, INITIAL_FOODS, INITIAL_ROUTINES } from "@/lib/data/seed";
-import { formatDateToISO, generateUUID } from "@/lib/utils";
+import { formatDateToISO, generateUUID, isValidUUID } from "@/lib/utils";
 import {
   isSupabaseConfigured,
   signOut as supabaseSignOut,
@@ -47,11 +47,11 @@ import {
 } from "@/lib/services/supabase-service";
 import { createClient } from "@/lib/supabase/client";
 
-const STORAGE_KEY_PREFIX = "pft_v1_";
+const STORAGE_KEY_PREFIX = "pft_v2_";
 
 const DEFAULT_PROFILE: Profile = {
   id: "user-1",
-  display_name: "Sreejith",
+  display_name: "Athlete",
   date_of_birth: "1998-05-15",
   sex: "male",
   height_cm: 178,
@@ -81,8 +81,8 @@ const DEFAULT_GOAL: FitnessGoal = {
 
 export interface TrackerState {
   hasCompletedOnboarding: boolean;
-  restDays: string[]; // List of YYYY-MM-DD dates marked as rest days
-  weeklySchedule: Record<number, string | null>; // 1=Mon..6=Sat, 0=Sun. routineId or null
+  restDays: string[];
+  weeklySchedule: Record<number, string | null>;
   profile: Profile;
   goals: FitnessGoal[];
   exercises: Exercise[];
@@ -105,7 +105,24 @@ export const DEFAULT_WEEKLY_SCHEDULE: Record<number, string | null> = {
   0: null,                     // Sunday: Rest Day (Cardio & Recovery)
 };
 
-function loadInitialState(): TrackerState {
+function getStorageKey(userId?: string): string {
+  return `${STORAGE_KEY_PREFIX}state_${userId || "guest"}`;
+}
+
+function resolveExerciseUUID(exerciseId: string, exercisesList: Exercise[]): string {
+  if (isValidUUID(exerciseId)) return exerciseId;
+  const found = exercisesList.find((e) => e.id === exerciseId);
+  if (found && isValidUUID(found.id)) return found.id;
+  if (found) {
+    const byName = exercisesList.find(
+      (e) => e.name.toLowerCase() === found.name.toLowerCase() && isValidUUID(e.id)
+    );
+    if (byName) return byName.id;
+  }
+  return generateUUID();
+}
+
+function loadInitialState(userId?: string): TrackerState {
   if (typeof window === "undefined") {
     return {
       hasCompletedOnboarding: true,
@@ -119,118 +136,40 @@ function loadInitialState(): TrackerState {
       sessions: [],
       foodLogs: [],
       waterLogs: [],
-      weightLogs: [
-        { id: "bw-1", user_id: "user-1", entry_date: "2026-10-10", weight_kg: 79.5, created_at: "2026-10-10T08:00:00Z" },
-        { id: "bw-2", user_id: "user-1", entry_date: "2026-10-17", weight_kg: 79.1, created_at: "2026-10-17T08:00:00Z" },
-        { id: "bw-3", user_id: "user-1", entry_date: "2026-10-24", weight_kg: 78.8, created_at: "2026-10-24T08:00:00Z" },
-        { id: "bw-4", user_id: "user-1", entry_date: "2026-10-31", weight_kg: 78.5, created_at: "2026-10-31T08:00:00Z" },
-      ],
-      measurementLogs: [
-        { id: "bm-1", user_id: "user-1", entry_date: "2026-10-25", waist_cm: 84, chest_cm: 102, arms_cm: 38, hips_cm: 98, thighs_cm: 58, created_at: "2026-10-25T09:00:00Z" }
-      ],
+      weightLogs: [],
+      measurementLogs: [],
     };
   }
 
+  const primaryKey = getStorageKey(userId);
+  const fallbackKey = "pft_v1_state";
+
   try {
-    const raw = localStorage.getItem(`${STORAGE_KEY_PREFIX}state`);
+    const raw = localStorage.getItem(primaryKey) || localStorage.getItem(fallbackKey);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (typeof parsed.hasCompletedOnboarding === "undefined") {
-        parsed.hasCompletedOnboarding = true;
-      }
-      if (!Array.isArray(parsed.restDays)) {
-        parsed.restDays = [];
-      }
-      if (Array.isArray(parsed.routines)) {
-        const existingIds = new Set(parsed.routines.map((r: WorkoutRoutine) => r.id));
-        INITIAL_ROUTINES.forEach((ir) => {
-          if (!existingIds.has(ir.id)) {
-            parsed.routines.push(ir);
-          }
-        });
-      } else {
-        parsed.routines = INITIAL_ROUTINES;
-      }
-      if (parsed.profile && !parsed.profile.theme_color) {
-        parsed.profile.theme_color = "purple";
-      }
-      if (!parsed.weeklySchedule) {
-        parsed.weeklySchedule = DEFAULT_WEEKLY_SCHEDULE;
-      }
-      return parsed;
+      return {
+        hasCompletedOnboarding: parsed.hasCompletedOnboarding ?? true,
+        restDays: Array.isArray(parsed.restDays) ? parsed.restDays : [],
+        weeklySchedule: parsed.weeklySchedule || DEFAULT_WEEKLY_SCHEDULE,
+        profile: parsed.profile ? { ...DEFAULT_PROFILE, ...parsed.profile } : DEFAULT_PROFILE,
+        goals: Array.isArray(parsed.goals) && parsed.goals.length > 0 ? parsed.goals : [DEFAULT_GOAL],
+        exercises: Array.isArray(parsed.exercises) && parsed.exercises.length > 0 ? parsed.exercises : (INITIAL_EXERCISES as Exercise[]),
+        foods: Array.isArray(parsed.foods) && parsed.foods.length > 0 ? parsed.foods : (INITIAL_FOODS as Food[]),
+        routines: Array.isArray(parsed.routines) && parsed.routines.length > 0 ? parsed.routines : INITIAL_ROUTINES,
+        sessions: Array.isArray(parsed.sessions) ? parsed.sessions : [],
+        // If a user ID is known, we start clean until synced from Supabase
+        foodLogs: userId ? [] : (Array.isArray(parsed.foodLogs) ? parsed.foodLogs : []),
+        waterLogs: userId ? [] : (Array.isArray(parsed.waterLogs) ? parsed.waterLogs : []),
+        weightLogs: Array.isArray(parsed.weightLogs) ? parsed.weightLogs : [],
+        measurementLogs: Array.isArray(parsed.measurementLogs) ? parsed.measurementLogs : [],
+      };
     }
   } catch (e) {
     console.error("Error reading localStorage", e);
   }
 
-  // Pre-seed default foods and initial demo items for today
-  const today = formatDateToISO(new Date());
-  const initialFoodLogs: FoodLog[] = [
-    {
-      id: "fl-1",
-      user_id: "user-1",
-      entry_date: today,
-      meal_category: "breakfast",
-      food_name_snapshot: "Whole Egg (Boiled)",
-      quantity: 3,
-      unit: "large (50g)",
-      calories: 234,
-      protein: 18.9,
-      carbohydrates: 1.8,
-      fat: 15.9,
-      created_at: new Date().toISOString(),
-    },
-    {
-      id: "fl-2",
-      user_id: "user-1",
-      entry_date: today,
-      meal_category: "breakfast",
-      food_name_snapshot: "Whole Wheat Bread Slice",
-      quantity: 2,
-      unit: "slice (30g)",
-      calories: 150,
-      protein: 7,
-      carbohydrates: 26,
-      fat: 2,
-      created_at: new Date().toISOString(),
-    },
-    {
-      id: "fl-3",
-      user_id: "user-1",
-      entry_date: today,
-      meal_category: "lunch",
-      food_name_snapshot: "Cooked White Rice",
-      quantity: 200,
-      unit: "g",
-      calories: 260,
-      protein: 5.4,
-      carbohydrates: 56.4,
-      fat: 0.6,
-      created_at: new Date().toISOString(),
-    },
-    {
-      id: "fl-4",
-      user_id: "user-1",
-      entry_date: today,
-      meal_category: "lunch",
-      food_name_snapshot: "Chicken Breast (Cooked, Grilled)",
-      quantity: 180,
-      unit: "g",
-      calories: 297,
-      protein: 55.8,
-      carbohydrates: 0,
-      fat: 6.48,
-      created_at: new Date().toISOString(),
-    },
-  ];
-
-  const initialWaterLogs: WaterLog[] = [
-    { id: "wl-1", user_id: "user-1", entry_date: today, amount_ml: 500, logged_at: "08:30", created_at: new Date().toISOString() },
-    { id: "wl-2", user_id: "user-1", entry_date: today, amount_ml: 500, logged_at: "11:15", created_at: new Date().toISOString() },
-    { id: "wl-3", user_id: "user-1", entry_date: today, amount_ml: 250, logged_at: "13:45", created_at: new Date().toISOString() },
-  ];
-
-  const freshState: TrackerState = {
+  return {
     hasCompletedOnboarding: false,
     restDays: [],
     weeklySchedule: DEFAULT_WEEKLY_SCHEDULE,
@@ -240,41 +179,34 @@ function loadInitialState(): TrackerState {
     foods: INITIAL_FOODS as Food[],
     routines: INITIAL_ROUTINES,
     sessions: [],
-    foodLogs: initialFoodLogs,
-    waterLogs: initialWaterLogs,
-    weightLogs: [
-      { id: "bw-1", user_id: "user-1", entry_date: "2026-10-10", weight_kg: 79.5, created_at: "2026-10-10T08:00:00Z" },
-      { id: "bw-2", user_id: "user-1", entry_date: "2026-10-17", weight_kg: 79.1, created_at: "2026-10-17T08:00:00Z" },
-      { id: "bw-3", user_id: "user-1", entry_date: "2026-10-24", weight_kg: 78.8, created_at: "2026-10-24T08:00:00Z" },
-      { id: "bw-4", user_id: "user-1", entry_date: today, weight_kg: 78.5, created_at: new Date().toISOString() },
-    ],
-    measurementLogs: [
-      { id: "bm-1", user_id: "user-1", entry_date: "2026-10-25", waist_cm: 84, chest_cm: 102, arms_cm: 38, hips_cm: 98, thighs_cm: 58, created_at: "2026-10-25T09:00:00Z" }
-    ],
+    foodLogs: [],
+    waterLogs: [],
+    weightLogs: [],
+    measurementLogs: [],
   };
-
-  try {
-    localStorage.setItem(`${STORAGE_KEY_PREFIX}state`, JSON.stringify(freshState));
-  } catch (e) {
-    console.error("Error saving initial state", e);
-  }
-
-  return freshState;
 }
 
 export function useTrackerStore() {
-  const [state, setState] = useState<TrackerState>(loadInitialState);
+  const [state, setState] = useState<TrackerState>(() => loadInitialState());
   const [isLoaded, setIsLoaded] = useState(false);
   const [authUser, setAuthUser] = useState<any | null>(null);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const [syncStatus, setSyncStatus] = useState<"idle" | "syncing" | "synced" | "offline">("idle");
 
-  const saveState = useCallback((newState: TrackerState) => {
+  const stateRef = useRef(state);
+  stateRef.current = state;
+  const authUserRef = useRef(authUser);
+  authUserRef.current = authUser;
+
+  const saveState = useCallback((newState: TrackerState, userId?: string) => {
     setState(newState);
-    try {
-      localStorage.setItem(`${STORAGE_KEY_PREFIX}state`, JSON.stringify(newState));
-    } catch (e) {
-      console.error("Error saving state to localStorage", e);
+    if (typeof window !== "undefined") {
+      try {
+        const uid = userId || authUserRef.current?.id;
+        localStorage.setItem(getStorageKey(uid), JSON.stringify(newState));
+      } catch (e) {
+        console.error("Error saving state to localStorage", e);
+      }
     }
   }, []);
 
@@ -289,7 +221,7 @@ export function useTrackerStore() {
       let profile = await fetchProfile(user.id);
       if (!profile) {
         // User just registered: create initial profile in Supabase
-        const initialProfileData: Partial<Profile> & { id: string } = {
+        const initialProfileData = {
           id: user.id,
           display_name: user.user_metadata?.display_name || baseState.profile.display_name || "Athlete",
           fitness_goal: baseState.profile.fitness_goal || "maintain_weight",
@@ -297,7 +229,6 @@ export function useTrackerStore() {
           height_cm: baseState.profile.height_cm || 178,
           latest_weight_kg: baseState.profile.latest_weight_kg || 78.5,
           timezone: baseState.profile.timezone || "Asia/Kolkata",
-          theme_color: baseState.profile.theme_color || "purple",
         };
         profile = await upsertProfile(initialProfileData);
       }
@@ -314,6 +245,7 @@ export function useTrackerStore() {
           fat_grams: currentGoal.fat_grams,
           water_ml: currentGoal.water_ml,
           workouts_per_week: currentGoal.workouts_per_week,
+          effective_from: new Date().toISOString().split("T")[0],
         });
         if (newGoal) remoteGoals = [newGoal];
       }
@@ -339,42 +271,59 @@ export function useTrackerStore() {
         fetchWorkoutRoutines(user.id),
       ]);
 
-      // If user had local food logs and remote is empty, migrate them up to Supabase
-      if (remoteFoodLogs.length === 0 && baseState.foodLogs.length > 0) {
-        for (const fl of baseState.foodLogs) {
-          await supabaseInsertFoodLog({
-            user_id: user.id,
-            entry_date: fl.entry_date,
-            meal_category: fl.meal_category,
-            food_name_snapshot: fl.food_name_snapshot,
-            quantity: fl.quantity,
-            unit: fl.unit,
-            calories: fl.calories,
-            protein: fl.protein,
-            carbohydrates: fl.carbohydrates,
-            fat: fl.fat,
-            notes: fl.notes,
-          });
+      // Merge exercises: Supabase library exercises + fallback seeds
+      const mergedExercises = [...remoteExercises];
+      const existingExNames = new Set(remoteExercises.map((e) => e.name.toLowerCase()));
+      INITIAL_EXERCISES.forEach((ie) => {
+        if (!existingExNames.has(ie.name.toLowerCase())) {
+          mergedExercises.push(ie as Exercise);
         }
-      }
+      });
 
-      // Assemble merged state
+      // Merge foods: Supabase foods + default foods
+      const mergedFoods = [...remoteFoods];
+      const existingFoodNames = new Set(remoteFoods.map((f) => f.name.toLowerCase()));
+      INITIAL_FOODS.forEach((ifo) => {
+        if (!existingFoodNames.has(ifo.name.toLowerCase())) {
+          mergedFoods.push(ifo as Food);
+        }
+      });
+
+      // Merge routines: built-in template routines + user's cloud routines
+      const mergedRoutines = [...INITIAL_ROUTINES];
+      const builtInRoutineIds = new Set(INITIAL_ROUTINES.map((r) => r.id));
+      remoteRoutines.forEach((rr) => {
+        if (!builtInRoutineIds.has(rr.id)) {
+          mergedRoutines.push(rr);
+        }
+      });
+
+      // Determine latest recorded weight from cloud logs
+      const sortedWeights = [...remoteWeightLogs].sort((a, b) => a.entry_date.localeCompare(b.entry_date));
+      const latestLoggedWeight = sortedWeights.length > 0 ? sortedWeights[sortedWeights.length - 1].weight_kg : null;
+      const effectiveWeight = latestLoggedWeight ?? profile?.latest_weight_kg ?? baseState.profile.latest_weight_kg ?? 78.5;
+
+      // Assemble merged state: For an authenticated user, Supabase is the single source of truth.
       const mergedState: TrackerState = {
         ...baseState,
         hasCompletedOnboarding: true,
-        profile: profile || baseState.profile,
+        profile: {
+          ...(profile || baseState.profile),
+          latest_weight_kg: effectiveWeight,
+          theme_color: baseState.profile.theme_color || "purple",
+        },
         goals: remoteGoals.length > 0 ? remoteGoals : baseState.goals,
-        foodLogs: remoteFoodLogs.length > 0 ? remoteFoodLogs : baseState.foodLogs,
-        waterLogs: remoteWaterLogs.length > 0 ? remoteWaterLogs : baseState.waterLogs,
-        weightLogs: remoteWeightLogs.length > 0 ? remoteWeightLogs : baseState.weightLogs,
-        measurementLogs: remoteMeasurementLogs.length > 0 ? remoteMeasurementLogs : baseState.measurementLogs,
-        sessions: remoteSessions.length > 0 ? remoteSessions : baseState.sessions,
-        routines: remoteRoutines.length > 0 ? remoteRoutines : baseState.routines,
-        exercises: remoteExercises.length > 0 ? remoteExercises : baseState.exercises,
-        foods: remoteFoods.length > 0 ? remoteFoods : baseState.foods,
+        foodLogs: remoteFoodLogs,
+        waterLogs: remoteWaterLogs,
+        weightLogs: remoteWeightLogs,
+        measurementLogs: remoteMeasurementLogs,
+        sessions: remoteSessions,
+        routines: mergedRoutines,
+        exercises: mergedExercises,
+        foods: mergedFoods,
       };
 
-      saveState(mergedState);
+      saveState(mergedState, user.id);
       setSyncStatus("synced");
     } catch (err) {
       console.error("Cloud sync error:", err);
@@ -386,25 +335,33 @@ export function useTrackerStore() {
 
   // Initial mount: load local storage + connect Supabase Auth listener
   useEffect(() => {
-    const loaded = loadInitialState();
-    setState(loaded);
-    setIsLoaded(true);
-
     if (!isSupabaseConfigured()) {
+      const loaded = loadInitialState();
+      setState(loaded);
+      setIsLoaded(true);
       setSyncStatus("offline");
       return;
     }
 
     const supabase = createClient();
-    if (!supabase) return;
+    if (!supabase) {
+      setIsLoaded(true);
+      return;
+    }
 
     // Check existing session
     supabase.auth.getSession().then((res: any) => {
       const session = res?.data?.session;
       if (session?.user) {
         setAuthUser(session.user);
-        syncWithCloud(session.user, loaded);
+        const userState = loadInitialState(session.user.id);
+        setState(userState);
+        setIsLoaded(true);
+        syncWithCloud(session.user, userState);
       } else {
+        const guestState = loadInitialState();
+        setState(guestState);
+        setIsLoaded(true);
         setSyncStatus("offline");
       }
     });
@@ -415,10 +372,14 @@ export function useTrackerStore() {
     } = supabase.auth.onAuthStateChange(async (event: any, session: any) => {
       if (event === "SIGNED_IN" && session?.user) {
         setAuthUser(session.user);
-        await syncWithCloud(session.user, loaded);
+        const userState = loadInitialState(session.user.id);
+        setState(userState);
+        await syncWithCloud(session.user, userState);
       } else if (event === "SIGNED_OUT") {
         setAuthUser(null);
         setSyncStatus("offline");
+        const freshGuest = loadInitialState();
+        setState(freshGuest);
       }
     });
 
@@ -427,16 +388,101 @@ export function useTrackerStore() {
     };
   }, [syncWithCloud]);
 
+  // Realtime subscription and window focus listener for multi-device sync
+  useEffect(() => {
+    if (!authUser || !isSupabaseConfigured()) return;
+    const supabase = createClient();
+    if (!supabase) return;
+
+    // Realtime channel for live updates when another device mutates data
+    const channel = supabase
+      .channel(`sync_${authUser.id}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "food_logs", filter: `user_id=eq.${authUser.id}` },
+        async () => {
+          const fresh = await fetchFoodLogs(authUser.id);
+          setState((prev) => {
+            const next = { ...prev, foodLogs: fresh };
+            saveState(next, authUser.id);
+            return next;
+          });
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "water_logs", filter: `user_id=eq.${authUser.id}` },
+        async () => {
+          const fresh = await fetchWaterLogs(authUser.id);
+          setState((prev) => {
+            const next = { ...prev, waterLogs: fresh };
+            saveState(next, authUser.id);
+            return next;
+          });
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "body_weight_logs", filter: `user_id=eq.${authUser.id}` },
+        async () => {
+          const fresh = await fetchWeightLogs(authUser.id);
+          setState((prev) => {
+            const next = { ...prev, weightLogs: fresh };
+            saveState(next, authUser.id);
+            return next;
+          });
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "workout_sessions", filter: `user_id=eq.${authUser.id}` },
+        async () => {
+          const fresh = await fetchWorkoutSessions(authUser.id);
+          setState((prev) => {
+            const next = { ...prev, sessions: fresh };
+            saveState(next, authUser.id);
+            return next;
+          });
+        }
+      )
+      .subscribe();
+
+    // Re-sync whenever the window regains focus (e.g. user switches tabs or wakes device)
+    const handleFocus = () => {
+      if (document.visibilityState === "visible") {
+        syncWithCloud(authUser, stateRef.current);
+      }
+    };
+    window.addEventListener("focus", handleFocus);
+    window.addEventListener("visibilitychange", handleFocus);
+
+    return () => {
+      supabase.removeChannel(channel);
+      window.removeEventListener("focus", handleFocus);
+      window.removeEventListener("visibilitychange", handleFocus);
+    };
+  }, [authUser, syncWithCloud, saveState]);
+
   // Auth actions
   const signOut = async () => {
     await supabaseSignOut();
     setAuthUser(null);
     setSyncStatus("offline");
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.removeItem(getStorageKey(authUser?.id));
+        localStorage.removeItem("pft_v1_state");
+      } catch (e) {
+        console.error("Error clearing state on sign out:", e);
+      }
+    }
+    const guestState = loadInitialState();
+    setState(guestState);
   };
 
   const refreshCloudSync = async () => {
     if (authUser) {
-      await syncWithCloud(authUser, state);
+      await syncWithCloud(authUser, stateRef.current);
     }
   };
 
@@ -459,7 +505,8 @@ export function useTrackerStore() {
     saveState({ ...state, goals: [updated] });
 
     if (authUser) {
-      const { user_id: _, ...goalData } = updated;
+      const goalData = { ...updated };
+      delete (goalData as Partial<FitnessGoal>).user_id;
       upsertFitnessGoal({
         ...goalData,
         user_id: authUser.id,
@@ -511,13 +558,15 @@ export function useTrackerStore() {
         latest_weight_kg: data.initialWeightKg,
       }).catch((e) => console.error("Error during completeOnboarding profile sync:", e));
 
-      const { user_id: _gUid, ...onboardingGoalData } = updatedGoal;
+      const onboardingGoalData = { ...updatedGoal };
+      delete (onboardingGoalData as Partial<FitnessGoal>).user_id;
       upsertFitnessGoal({
         ...onboardingGoalData,
         user_id: authUser.id,
       }).catch((e) => console.error("Error during completeOnboarding goal sync:", e));
 
       supabaseInsertWeightLog({
+        id: initialWeightEntry.id,
         user_id: authUser.id,
         entry_date: today,
         weight_kg: data.initialWeightKg,
@@ -543,7 +592,7 @@ export function useTrackerStore() {
   };
 
   // Water Actions
-  const addWater = (entryDate: string, amountMl: number) => {
+  const addWater = async (entryDate: string, amountMl: number) => {
     const newId = generateUUID();
     const newLog: WaterLog = {
       id: newId,
@@ -556,27 +605,36 @@ export function useTrackerStore() {
     saveState({ ...state, waterLogs: [newLog, ...state.waterLogs] });
 
     if (authUser) {
-      supabaseInsertWaterLog({
-        user_id: authUser.id,
-        entry_date: entryDate,
-        amount_ml: amountMl,
-      }).catch((e) => console.error("Error syncing water log:", e));
+      try {
+        await supabaseInsertWaterLog({
+          id: newId,
+          user_id: authUser.id,
+          entry_date: entryDate,
+          amount_ml: amountMl,
+        });
+      } catch (e) {
+        console.error("Error syncing water log to Supabase:", e);
+      }
     }
   };
 
-  const deleteWaterLog = (id: string) => {
+  const deleteWaterLog = async (id: string) => {
     saveState({
       ...state,
       waterLogs: state.waterLogs.filter((w) => w.id !== id),
     });
 
     if (authUser) {
-      supabaseDeleteWaterLog(id).catch((e) => console.error("Error deleting water log:", e));
+      try {
+        await supabaseDeleteWaterLog(id);
+      } catch (e) {
+        console.error("Error deleting water log from Supabase:", e);
+      }
     }
   };
 
   // Food Log Actions
-  const addFoodLog = (log: Omit<FoodLog, "id" | "user_id" | "created_at">) => {
+  const addFoodLog = async (log: Omit<FoodLog, "id" | "user_id" | "created_at">) => {
     const newId = generateUUID();
     const newLog: FoodLog = {
       ...log,
@@ -584,33 +642,52 @@ export function useTrackerStore() {
       user_id: authUser ? authUser.id : state.profile.id,
       created_at: new Date().toISOString(),
     };
+
+    // Optimistic local state update
     saveState({ ...state, foodLogs: [newLog, ...state.foodLogs] });
 
     if (authUser) {
-      supabaseInsertFoodLog({
-        user_id: authUser.id,
-        entry_date: log.entry_date,
-        meal_category: log.meal_category,
-        food_name_snapshot: log.food_name_snapshot,
-        quantity: log.quantity,
-        unit: log.unit,
-        calories: log.calories,
-        protein: log.protein,
-        carbohydrates: log.carbohydrates,
-        fat: log.fat,
-        notes: log.notes,
-      }).catch((e) => console.error("Error syncing food log:", e));
+      try {
+        const saved = await supabaseInsertFoodLog({
+          id: newId,
+          user_id: authUser.id,
+          entry_date: log.entry_date,
+          meal_category: log.meal_category,
+          food_name_snapshot: log.food_name_snapshot,
+          quantity: log.quantity,
+          unit: log.unit,
+          calories: log.calories,
+          protein: log.protein,
+          carbohydrates: log.carbohydrates,
+          fat: log.fat,
+          notes: log.notes,
+        });
+
+        if (saved && saved.id && saved.id !== newId) {
+          setState((prev) => ({
+            ...prev,
+            foodLogs: prev.foodLogs.map((f) => (f.id === newId ? saved : f)),
+          }));
+        }
+      } catch (e) {
+        console.error("Error syncing food log to Supabase:", e);
+      }
     }
   };
 
-  const deleteFoodLog = (id: string) => {
+  const deleteFoodLog = async (id: string) => {
+    // Optimistic local removal
     saveState({
       ...state,
       foodLogs: state.foodLogs.filter((f) => f.id !== id),
     });
 
     if (authUser) {
-      supabaseDeleteFoodLog(id).catch((e) => console.error("Error deleting food log:", e));
+      try {
+        await supabaseDeleteFoodLog(id);
+      } catch (e) {
+        console.error("Error deleting food log from Supabase:", e);
+      }
     }
   };
 
@@ -642,6 +719,7 @@ export function useTrackerStore() {
     if (authUser) {
       duplicatedLogs.forEach((dl) => {
         supabaseInsertFoodLog({
+          id: dl.id,
           user_id: authUser.id,
           entry_date: dl.entry_date,
           meal_category: dl.meal_category,
@@ -672,9 +750,10 @@ export function useTrackerStore() {
   };
 
   // Body Weight
-  const addWeightLog = (entryDate: string, weightKg: number, notes?: string) => {
+  const addWeightLog = async (entryDate: string, weightKg: number, notes?: string) => {
+    const newId = generateUUID();
     const newLog: BodyWeightLog = {
-      id: generateUUID(),
+      id: newId,
       user_id: authUser ? authUser.id : state.profile.id,
       entry_date: entryDate,
       weight_kg: weightKg,
@@ -686,31 +765,38 @@ export function useTrackerStore() {
       latest_weight_kg: weightKg,
       updated_at: new Date().toISOString(),
     };
+    const updatedWeightLogs = [newLog, ...state.weightLogs.filter((w) => w.entry_date !== entryDate)];
     saveState({
       ...state,
       profile: updatedProfile,
-      weightLogs: [newLog, ...state.weightLogs.filter((w) => w.entry_date !== entryDate)],
+      weightLogs: updatedWeightLogs,
     });
 
     if (authUser) {
-      supabaseInsertWeightLog({
-        user_id: authUser.id,
-        entry_date: entryDate,
-        weight_kg: weightKg,
-        notes,
-      }).catch((e) => console.error("Error syncing weight log:", e));
+      try {
+        await supabaseInsertWeightLog({
+          id: newId,
+          user_id: authUser.id,
+          entry_date: entryDate,
+          weight_kg: weightKg,
+          notes,
+        });
 
-      upsertProfile({
-        id: authUser.id,
-        latest_weight_kg: weightKg,
-      }).catch((e) => console.error("Error updating profile weight:", e));
+        await upsertProfile({
+          id: authUser.id,
+          latest_weight_kg: weightKg,
+        });
+      } catch (e) {
+        console.error("Error syncing weight log:", e);
+      }
     }
   };
 
   // Body Measurements
-  const addMeasurementLog = (entryDate: string, measurements: Partial<BodyMeasurementLog>) => {
+  const addMeasurementLog = async (entryDate: string, measurements: Partial<BodyMeasurementLog>) => {
+    const newId = generateUUID();
     const newLog: BodyMeasurementLog = {
-      id: generateUUID(),
+      id: newId,
       user_id: authUser ? authUser.id : state.profile.id,
       entry_date: entryDate,
       ...measurements,
@@ -722,11 +808,16 @@ export function useTrackerStore() {
     });
 
     if (authUser) {
-      supabaseInsertMeasurementLog({
-        user_id: authUser.id,
-        entry_date: entryDate,
-        ...measurements,
-      }).catch((e) => console.error("Error syncing measurement log:", e));
+      try {
+        await supabaseInsertMeasurementLog({
+          id: newId,
+          user_id: authUser.id,
+          entry_date: entryDate,
+          ...measurements,
+        });
+      } catch (e) {
+        console.error("Error syncing measurement log:", e);
+      }
     }
   };
 
@@ -744,7 +835,7 @@ export function useTrackerStore() {
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       exercises: (routine.exercises || []).map((re, idx) => ({
-        exercise_id: re.exercise_id,
+        exercise_id: resolveExerciseUUID(re.exercise_id, state.exercises),
         order_index: re.order_index ?? idx,
         target_sets: re.target_sets,
         target_reps: re.target_reps,
@@ -812,13 +903,14 @@ export function useTrackerStore() {
     const initialSets: WorkoutSet[] = [];
     if (customExercises && customExercises.length > 0) {
       customExercises.forEach((ce) => {
+        const resolvedExId = resolveExerciseUUID(ce.exercise_id, state.exercises);
         if (ce.sets && ce.sets.length > 0) {
           ce.sets.forEach((s) => {
             const mappedType: WorkoutSetType = s.type === "drop" ? "dropset" : s.type;
             initialSets.push({
               id: generateUUID(),
               session_id: sessionId,
-              exercise_id: ce.exercise_id,
+              exercise_id: resolvedExId,
               set_number: s.setNumber,
               reps: s.reps,
               weight_kg: s.weight,
@@ -832,7 +924,7 @@ export function useTrackerStore() {
             initialSets.push({
               id: generateUUID(),
               session_id: sessionId,
-              exercise_id: ce.exercise_id,
+              exercise_id: resolvedExId,
               set_number: s,
               reps: parseInt(ce.target_reps) || 10,
               weight_kg: ce.target_weight_kg || 0,
@@ -845,11 +937,12 @@ export function useTrackerStore() {
       });
     } else if (routine && routine.exercises) {
       routine.exercises.forEach((re) => {
+        const resolvedExId = resolveExerciseUUID(re.exercise_id, state.exercises);
         for (let s = 1; s <= re.target_sets; s++) {
           initialSets.push({
             id: generateUUID(),
             session_id: sessionId,
-            exercise_id: re.exercise_id,
+            exercise_id: resolvedExId,
             set_number: s,
             reps: parseInt(re.target_reps) || 10,
             weight_kg: re.target_weight_kg || 0,
@@ -897,17 +990,18 @@ export function useTrackerStore() {
   };
 
   const addSetToSession = (sessionId: string, exerciseId: string) => {
+    const resolvedExId = resolveExerciseUUID(exerciseId, state.exercises);
     const updatedSessions = state.sessions.map((session) => {
       if (session.id !== sessionId) return session;
       const sets = session.sets || [];
-      const exerciseSets = sets.filter((s) => s.exercise_id === exerciseId);
+      const exerciseSets = sets.filter((s) => s.exercise_id === resolvedExId);
       const nextSetNum = exerciseSets.length + 1;
       const lastSet = exerciseSets[exerciseSets.length - 1];
 
       const newSet: WorkoutSet = {
         id: generateUUID(),
         session_id: sessionId,
-        exercise_id: exerciseId,
+        exercise_id: resolvedExId,
         set_number: nextSetNum,
         reps: lastSet ? lastSet.reps : 10,
         weight_kg: lastSet ? lastSet.weight_kg : 0,
@@ -927,6 +1021,7 @@ export function useTrackerStore() {
     targetWeight = 20,
     targetReps = 10
   ) => {
+    const resolvedExId = resolveExerciseUUID(exerciseId, state.exercises);
     const updatedSessions = state.sessions.map((session) => {
       if (session.id !== sessionId) return session;
       const sets = session.sets || [];
@@ -935,7 +1030,7 @@ export function useTrackerStore() {
         newSets.push({
           id: generateUUID(),
           session_id: sessionId,
-          exercise_id: exerciseId,
+          exercise_id: resolvedExId,
           set_number: s,
           reps: targetReps,
           weight_kg: targetWeight,
@@ -970,11 +1065,12 @@ export function useTrackerStore() {
   };
 
   const removeExerciseFromSession = (sessionId: string, exerciseId: string) => {
+    const resolvedExId = resolveExerciseUUID(exerciseId, state.exercises);
     const updatedSessions = state.sessions.map((session) => {
       if (session.id !== sessionId || !session.sets) return session;
       return {
         ...session,
-        sets: session.sets.filter((s) => s.exercise_id !== exerciseId),
+        sets: session.sets.filter((s) => s.exercise_id !== resolvedExId && s.exercise_id !== exerciseId),
       };
     });
     saveState({ ...state, sessions: updatedSessions });
@@ -1017,7 +1113,7 @@ export function useTrackerStore() {
         },
         (sess.sets || []).map((s) => ({
           session_id: sess.id,
-          exercise_id: s.exercise_id,
+          exercise_id: resolveExerciseUUID(s.exercise_id, state.exercises),
           set_number: s.set_number,
           set_type: s.set_type,
           weight_kg: s.weight_kg,

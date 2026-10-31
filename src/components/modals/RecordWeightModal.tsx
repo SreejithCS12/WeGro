@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X, Scale, Plus, Minus } from "lucide-react";
 import { formatDateToISO } from "@/lib/utils";
 
@@ -22,6 +22,19 @@ export function RecordWeightModal({
   const [weight, setWeight] = useState<number>(latestWeight || 75.0);
   const [date, setDate] = useState<string>(currentDate || formatDateToISO(new Date()));
   const [notes, setNotes] = useState("");
+
+  // Sync state whenever modal opens or props update
+  useEffect(() => {
+    if (isOpen) {
+      if (typeof latestWeight === "number" && latestWeight > 0) {
+        setWeight(latestWeight);
+      }
+      if (currentDate) {
+        setDate(currentDate);
+      }
+      setNotes("");
+    }
+  }, [isOpen, latestWeight, currentDate]);
 
   if (!isOpen) return null;
 
