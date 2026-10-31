@@ -1,69 +1,418 @@
-import Image from "next/image";
+"use client";
+
+import { useState, useEffect } from "react";
+import { Header } from "@/components/navigation/Header";
+import { DesktopSidebar } from "@/components/navigation/DesktopSidebar";
+import { BottomNav, NavTab } from "@/components/navigation/BottomNav";
+import { WeGroLogo } from "@/components/ui/WeGroLogo";
+import { EnergyCard } from "@/components/dashboard/EnergyCard";
+import { QuickActions } from "@/components/dashboard/QuickActions";
+import { HydrationCard } from "@/components/dashboard/HydrationCard";
+import { WorkoutTodayCard } from "@/components/dashboard/WorkoutTodayCard";
+import { MealsCard } from "@/components/dashboard/MealsCard";
+import { AddFoodModal } from "@/components/modals/AddFoodModal";
+import { AddWaterModal } from "@/components/modals/AddWaterModal";
+import { RecordWeightModal } from "@/components/modals/RecordWeightModal";
+import { CopyMealsModal } from "@/components/modals/CopyMealsModal";
+import { CreateRoutineModal } from "@/components/modals/CreateRoutineModal";
+import { AuthModal } from "@/components/auth/AuthModal";
+import { WorkoutView } from "@/components/workout/WorkoutView";
+import { ActiveWorkoutView } from "@/components/workout/ActiveWorkoutView";
+import { NutritionView } from "@/components/nutrition/NutritionView";
+import { ProgressView } from "@/components/progress/ProgressView";
+import { SettingsView } from "@/components/settings/SettingsView";
+import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
+import { useTrackerStore } from "@/lib/services/tracker-store";
+import { formatDateToISO } from "@/lib/utils";
+import { MealCategory } from "@/types/database";
+import { applyTheme, getStoredTheme } from "@/lib/theme";
 
 export default function Home() {
+  const store = useTrackerStore();
+  const [currentDate, setCurrentDate] = useState<string>(formatDateToISO(new Date()));
+  const [currentTab, setCurrentTab] = useState<NavTab>("dashboard");
+
+  // Modals state
+  const [isAddFoodOpen, setIsAddFoodOpen] = useState(false);
+  const [foodModalCategory, setFoodModalCategory] = useState<MealCategory>("lunch");
+  const [isAddWaterOpen, setIsAddWaterOpen] = useState(false);
+  const [isRecordWeightOpen, setIsRecordWeightOpen] = useState(false);
+  const [isCopyMealsOpen, setIsCopyMealsOpen] = useState(false);
+  const [isCreateRoutineOpen, setIsCreateRoutineOpen] = useState(false);
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
+
+  useEffect(() => {
+    if (store.isLoaded) {
+      const activeTheme = store.state.profile?.theme_color || getStoredTheme();
+      applyTheme(activeTheme);
+    }
+  }, [store.isLoaded, store.state.profile?.theme_color]);
+
+  if (!store.isLoaded) {
+    return (
+      <div className="min-h-screen bg-[#09090b] flex items-center justify-center text-white">
+        <div className="flex flex-col items-center gap-3">
+          <WeGroLogo size="lg" />
+          <span className="text-xs font-medium text-zinc-400 animate-pulse">Loading WeGro...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Render Onboarding Wizard if not completed yet
+  if (!store.hasCompletedOnboarding) {
+    return (
+      <OnboardingWizard
+        onComplete={store.completeOnboarding}
+        initialProfile={store.state.profile}
+        initialGoal={store.state.goals[0]}
+      />
+    );
+  }
+
+  const dailyTotals = store.getDailyTotals(currentDate);
+  const dayFoodLogs = store.state.foodLogs.filter((f) => f.entry_date === currentDate);
+  const dayWaterLogs = store.state.waterLogs.filter((w) => w.entry_date === currentDate);
+  const completedSessions = store.state.sessions.filter((s) => s.status === "completed");
+
+  // Compute yesterday for quick meals copying
+  const [yearNum, monthNum, dayNum] = currentDate.split("-").map(Number);
+  const prevDateObj = new Date(yearNum, monthNum - 1, dayNum);
+  prevDateObj.setDate(prevDateObj.getDate() - 1);
+  const yesterdayDate = formatDateToISO(prevDateObj);
+  const yesterdayFoodLogs = store.state.foodLogs.filter((f) => f.entry_date === yesterdayDate);
+
+  const handleOpenAddFood = (category: MealCategory = "lunch") => {
+    setFoodModalCategory(category);
+    setIsAddFoodOpen(true);
+  };
+
+  const todayDayIndex = new Date().getDay();
+  const scheduledRoutineId = store.state.weeklySchedule?.[todayDayIndex];
+  const todayRoutine = store.state.routines.find((r) => r.id === scheduledRoutineId);
+  const todayRoutineName = scheduledRoutineId === null ? "Rest Day" : todayRoutine?.name || "Resistance Training";
+
+  const handleStartWorkout = (
+    routineId?: string,
+    customName?: string,
+    customExercises?: Array<{
+      exercise_id: string;
+      target_sets: number;
+      target_reps: string;
+      target_weight_kg?: number | null;
+    }>
+  ) => {
+    store.startWorkout(routineId, customName, customExercises);
+    setCurrentTab("workouts");
+  };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <div className="min-h-screen bg-[#09090b] text-[#f4f4f5] flex font-sans selection:bg-purple-500/30">
+      {/* Desktop Left Sidebar (Only visible on lg+ screens) */}
+      <DesktopSidebar
+        currentTab={currentTab}
+        onTabChange={setCurrentTab}
+        hasActiveWorkout={Boolean(store.activeWorkout)}
+        userName={store.state.profile.display_name}
+        calorieTarget={dailyTotals.goal.calorie_target}
+        onStartWorkout={() => handleStartWorkout()}
+        authUser={store.authUser}
+        onOpenAuth={() => setIsAuthOpen(true)}
+        onSignOut={store.signOut}
+      />
+
+      {/* Main App Content Area */}
+      <div className="flex-1 flex flex-col min-w-0 overflow-x-clip">
+        {/* Top Header */}
+        <Header
+          currentDate={currentDate}
+          onDateChange={setCurrentDate}
+          userName={store.state.profile.display_name}
+          onOpenProfile={() => setCurrentTab("settings")}
+          currentTab={currentTab}
+          onTabChange={setCurrentTab}
+          hasActiveWorkout={Boolean(store.activeWorkout)}
+          onQuickAddFood={() => handleOpenAddFood("lunch")}
+          onQuickAddWater={() => store.addWater(currentDate, 250)}
+          onQuickStartWorkout={() => handleStartWorkout()}
+          authUser={store.authUser}
+          onOpenAuth={() => setIsAuthOpen(true)}
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
+
+        {/* Main Scrollable View */}
+        <main className="flex-1 w-full max-w-lg md:max-w-4xl lg:max-w-7xl mx-auto px-4 md:px-6 lg:px-8 py-4 md:py-6 pb-32">
+          {/* Tab 1: Dashboard */}
+          {currentTab === "dashboard" && (
+            <div>
+              {/* MOBILE LAYOUT (< md): 100% UNTOUCHED ORIGINAL SINGLE COLUMN */}
+              <div className="md:hidden space-y-4 pb-20 animate-fade-in">
+                {/* Calorie & Macronutrient Summary */}
+                <EnergyCard
+                  calorieTarget={dailyTotals.goal.calorie_target}
+                  caloriesConsumed={dailyTotals.caloriesConsumed}
+                  proteinTarget={dailyTotals.goal.protein_grams}
+                  proteinConsumed={dailyTotals.proteinConsumed}
+                  carbsTarget={dailyTotals.goal.carbs_grams}
+                  carbsConsumed={dailyTotals.carbsConsumed}
+                  fatTarget={dailyTotals.goal.fat_grams}
+                  fatConsumed={dailyTotals.fatConsumed}
+                />
+
+                {/* Quick Actions */}
+                <QuickActions
+                  onAddFood={() => handleOpenAddFood("lunch")}
+                  onAddWater={() => store.addWater(currentDate, 250)}
+                  onStartWorkout={() => handleStartWorkout()}
+                  onLogWeight={() => setIsRecordWeightOpen(true)}
+                />
+
+                {/* Workout Card (Shows active session or start CTA) */}
+                <WorkoutTodayCard
+                  activeSession={store.activeWorkout}
+                  completedCount={dailyTotals.completedWorkoutsCount}
+                  isRestDay={dailyTotals.isRestDay}
+                  todayRoutineName={todayRoutineName}
+                  onToggleRestDay={() => store.toggleRestDay(currentDate)}
+                  onStartWorkout={() => handleStartWorkout()}
+                  onResumeWorkout={() => setCurrentTab("workouts")}
+                  onDiscardWorkout={store.discardWorkout}
+                />
+
+                {/* Hydration Card */}
+                <HydrationCard
+                  waterConsumed={dailyTotals.waterConsumed}
+                  waterTarget={dailyTotals.goal.water_ml}
+                  onQuickAdd={(ml) => store.addWater(currentDate, ml)}
+                  onOpenWaterModal={() => setIsAddWaterOpen(true)}
+                />
+
+                {/* Meals Logged Today */}
+                <MealsCard
+                  foodLogs={dayFoodLogs}
+                  onAddFood={handleOpenAddFood}
+                  onDeleteFood={store.deleteFoodLog}
+                  onOpenCopyModal={() => setIsCopyMealsOpen(true)}
+                />
+              </div>
+
+              {/* TABLET & DESKTOP LAYOUT (>= md): BALANCED MULTI-COLUMN GRID */}
+              <div className="hidden md:block pb-10 animate-fade-in">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-5 lg:gap-6 items-start">
+                  {/* Left Column (Tablet: 1 col [50%], Desktop: 7 cols [~58%]) */}
+                  <div className="space-y-5 lg:col-span-7">
+                    {/* Calorie & Macronutrient Summary */}
+                    <EnergyCard
+                      calorieTarget={dailyTotals.goal.calorie_target}
+                      caloriesConsumed={dailyTotals.caloriesConsumed}
+                      proteinTarget={dailyTotals.goal.protein_grams}
+                      proteinConsumed={dailyTotals.proteinConsumed}
+                      carbsTarget={dailyTotals.goal.carbs_grams}
+                      carbsConsumed={dailyTotals.carbsConsumed}
+                      fatTarget={dailyTotals.goal.fat_grams}
+                      fatConsumed={dailyTotals.fatConsumed}
+                    />
+
+                    {/* Meals Logged Today */}
+                    <MealsCard
+                      foodLogs={dayFoodLogs}
+                      onAddFood={handleOpenAddFood}
+                      onDeleteFood={store.deleteFoodLog}
+                      onOpenCopyModal={() => setIsCopyMealsOpen(true)}
+                    />
+                  </div>
+
+                  {/* Right Column (Tablet: 1 col [50%], Desktop: 5 cols [~42%]) */}
+                  <div className="space-y-5 lg:col-span-5">
+                    {/* Quick Actions */}
+                    <QuickActions
+                      onAddFood={() => handleOpenAddFood("lunch")}
+                      onAddWater={() => store.addWater(currentDate, 250)}
+                      onStartWorkout={() => handleStartWorkout()}
+                      onLogWeight={() => setIsRecordWeightOpen(true)}
+                    />
+
+                    {/* Workout Card */}
+                    <WorkoutTodayCard
+                      activeSession={store.activeWorkout}
+                      completedCount={dailyTotals.completedWorkoutsCount}
+                      isRestDay={dailyTotals.isRestDay}
+                      todayRoutineName={todayRoutineName}
+                      onToggleRestDay={() => store.toggleRestDay(currentDate)}
+                      onStartWorkout={() => handleStartWorkout()}
+                      onResumeWorkout={() => setCurrentTab("workouts")}
+                      onDiscardWorkout={store.discardWorkout}
+                    />
+
+                    {/* Hydration Card */}
+                    <HydrationCard
+                      waterConsumed={dailyTotals.waterConsumed}
+                      waterTarget={dailyTotals.goal.water_ml}
+                      onQuickAdd={(ml) => store.addWater(currentDate, ml)}
+                      onOpenWaterModal={() => setIsAddWaterOpen(true)}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+        {/* Tab 2: Workouts */}
+        {currentTab === "workouts" && (
+          <div className="animate-fade-in">
+            {store.activeWorkout ? (
+              <ActiveWorkoutView
+                session={store.activeWorkout}
+                exercises={store.state.exercises}
+                onUpdateSet={store.updateWorkoutSet}
+                onAddSet={store.addSetToSession}
+                onDeleteSet={store.deleteSetFromSession}
+                onAddExerciseToSession={store.addExerciseToSession}
+                onFinishWorkout={(sessionId, notes) => {
+                  store.finishWorkout(sessionId, notes);
+                  setCurrentTab("dashboard");
+                }}
+                onDiscardWorkout={(sessionId) => {
+                  store.discardWorkout(sessionId);
+                  setCurrentTab("dashboard");
+                }}
+              />
+            ) : (
+              <WorkoutView
+                routines={store.state.routines}
+                exercises={store.state.exercises}
+                recentSessions={store.state.sessions}
+                weeklySchedule={store.state.weeklySchedule}
+                onUpdateWeeklySchedule={store.updateWeeklySchedule}
+                onStartRoutine={handleStartWorkout}
+                onOpenCreateRoutine={() => setIsCreateRoutineOpen(true)}
+                onDeleteRoutine={store.deleteRoutine}
+              />
+            )}
+          </div>
+        )}
+
+        {/* Tab 3: Nutrition */}
+        {currentTab === "nutrition" && (
+          <div className="animate-fade-in">
+            <NutritionView
+              foods={store.state.foods}
+              foodLogs={dayFoodLogs}
+              goal={dailyTotals.goal}
+              onOpenAddFoodModal={() => handleOpenAddFood("lunch")}
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+          </div>
+        )}
+
+        {/* Tab 4: Progress */}
+        {currentTab === "progress" && (
+          <div className="animate-fade-in">
+            <ProgressView
+              weightLogs={store.state.weightLogs}
+              measurementLogs={store.state.measurementLogs}
+              completedSessions={completedSessions}
+              onOpenWeightModal={() => setIsRecordWeightOpen(true)}
+              onAddMeasurement={store.addMeasurementLog}
+            />
+          </div>
+        )}
+
+        {/* Tab 5: Settings */}
+        {currentTab === "settings" && (
+          <div className="animate-fade-in">
+            <SettingsView
+              profile={store.state.profile}
+              goal={dailyTotals.goal}
+              onUpdateProfile={store.updateProfile}
+              onUpdateGoal={store.updateGoal}
+              onResetOnboarding={store.resetOnboarding}
+              authUser={store.authUser}
+              isSyncing={store.isSyncing}
+              syncStatus={store.syncStatus}
+              onOpenAuth={() => setIsAuthOpen(true)}
+              onSignOut={store.signOut}
+              onRefreshCloudSync={store.refreshCloudSync}
+            />
+          </div>
+        )}
       </main>
+
+      {/* Modals */}
+      <AddFoodModal
+        isOpen={isAddFoodOpen}
+        onClose={() => setIsAddFoodOpen(false)}
+        foods={store.state.foods}
+        initialCategory={foodModalCategory}
+        onLogFood={(data) => {
+          store.addFoodLog({
+            entry_date: currentDate,
+            meal_category: data.meal_category,
+            food_id: data.food_id,
+            food_name_snapshot: data.food_name_snapshot,
+            quantity: data.quantity,
+            unit: data.unit,
+            calories: data.calories,
+            protein: data.protein,
+            carbohydrates: data.carbohydrates,
+            fat: data.fat,
+            notes: data.notes,
+          });
+        }}
+        onCreateCustomFood={store.addCustomFood}
+      />
+
+      <AddWaterModal
+        isOpen={isAddWaterOpen}
+        onClose={() => setIsAddWaterOpen(false)}
+        waterLogs={dayWaterLogs}
+        onAddWater={(ml) => store.addWater(currentDate, ml)}
+        onDeleteWater={store.deleteWaterLog}
+      />
+
+      <RecordWeightModal
+        isOpen={isRecordWeightOpen}
+        onClose={() => setIsRecordWeightOpen(false)}
+        currentDate={currentDate}
+        latestWeight={store.state.profile.latest_weight_kg}
+        onSaveWeight={(date, weight, notes) => store.addWeightLog(date, weight, notes)}
+      />
+
+      <CopyMealsModal
+        isOpen={isCopyMealsOpen}
+        onClose={() => setIsCopyMealsOpen(false)}
+        yesterdayLogs={yesterdayFoodLogs}
+        yesterdayDate={yesterdayDate}
+        onCopy={(categories) => {
+          store.copyMealsFromDate(yesterdayDate, currentDate, categories);
+        }}
+      />
+
+      <CreateRoutineModal
+        isOpen={isCreateRoutineOpen}
+        onClose={() => setIsCreateRoutineOpen(false)}
+        exercises={store.state.exercises}
+        onCreateRoutine={(routineData, autoStart) => {
+          const created = store.addRoutine(routineData);
+          if (autoStart && created) {
+            store.startWorkout(created.id);
+            setCurrentTab("workouts");
+          }
+        }}
+      />
+
+      {/* Cloud Authentication Modal */}
+      <AuthModal
+        isOpen={isAuthOpen}
+        onClose={() => setIsAuthOpen(false)}
+        onSuccess={() => setIsAuthOpen(false)}
+      />
+
+      {/* Sticky Bottom Navigation Bar */}
+      <BottomNav
+        currentTab={currentTab}
+        onTabChange={setCurrentTab}
+        hasActiveWorkout={Boolean(store.activeWorkout)}
+      />
+      </div>
     </div>
   );
 }

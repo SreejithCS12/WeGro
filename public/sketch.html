@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WeGro - Desktop & Tablet Layout Sketches</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    /* Custom scrollbar for preview */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #121214; }
+    ::-webkit-scrollbar-thumb { background: #27272a; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
+    .device-screen {
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+  </style>
+</head>
+<body class="bg-[#09090b] text-[#f4f4f5] font-sans antialiased min-h-screen p-4 md:p-6">
+
+  <!-- Header Controls & Viewport Switcher -->
+  <div class="max-w-7xl mx-auto mb-6 bg-[#18181b] border border-[#27272a] rounded-2xl p-4 md:p-5 shadow-xl">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div>
+        <div class="flex items-center gap-2">
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-violet-500/20 text-violet-400 border border-violet-500/30">
+            Design Proposal & Wireframe
+          </span>
+          <span class="text-xs text-zinc-500">• Zero Mobile Impact Guarantee</span>
+        </div>
+        <h1 class="text-xl md:text-2xl font-bold text-white mt-1">Responsive Layout Restructure: Desktop & Tablet</h1>
+        <p class="text-xs md:text-sm text-zinc-400 mt-1">
+          Review how the single-column mobile view expands into high-productivity 2-column (Tablet) and 3-zone (Desktop) layouts.
+        </p>
+      </div>
+
+      <!-- Device Mode Selector -->
+      <div class="flex items-center bg-[#09090b] p-1.5 rounded-xl border border-[#27272a] self-start md:self-auto">
+        <button id="btn-desktop" onclick="setDevice('desktop')" class="px-3.5 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all bg-violet-600 text-white shadow-lg shadow-violet-600/30">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg>
+          Desktop (1280px+)
+        </button>
+        <button id="btn-tablet" onclick="setDevice('tablet')" class="px-3.5 py-2 rounded-lg text-xs font-medium text-zinc-400 hover:text-white flex items-center gap-2 transition-all">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect width="16" height="20" x="4" y="2" rx="2"/><circle cx="12" cy="18" r="1"/></svg>
+          Tablet (768px - 1024px)
+        </button>
+        <button id="btn-mobile" onclick="setDevice('mobile')" class="px-3.5 py-2 rounded-lg text-xs font-medium text-zinc-400 hover:text-white flex items-center gap-2 transition-all">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect width="12" height="20" x="6" y="2" rx="2"/><line x1="10" x2="14" y1="18" y2="18"/></svg>
+          Mobile (Current)
+        </button>
+      </div>
+    </div>
+
+    <!-- Key Safety Highlights Bar -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-4 pt-4 border-t border-[#27272a]">
+      <div class="flex items-start gap-2.5 text-xs text-zinc-300 bg-[#121214] p-2.5 rounded-lg border border-[#27272a]">
+        <svg class="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+        <div>
+          <strong class="text-white block font-medium">Mobile Untouched</strong>
+          Uses Tailwind <code class="text-violet-400">md:</code> and <code class="text-violet-400">lg:</code> rules only. Phones stay 100% pixel-identical.
+        </div>
+      </div>
+      <div class="flex items-start gap-2.5 text-xs text-zinc-300 bg-[#121214] p-2.5 rounded-lg border border-[#27272a]">
+        <svg class="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+        <div>
+          <strong class="text-white block font-medium">Zero Running Work Impact</strong>
+          All modals, state store, workouts, and hydration data logic remain unchanged.
+        </div>
+      </div>
+      <div class="flex items-start gap-2.5 text-xs text-zinc-300 bg-[#121214] p-2.5 rounded-lg border border-[#27272a]">
+        <svg class="w-4 h-4 text-violet-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+        <div>
+          <strong class="text-white block font-medium">Screen Utilization</strong>
+          No more empty black borders on laptops. Multi-column grid puts daily info at eye level.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Interactive Device Viewport Simulation Area -->
+  <div class="max-w-7xl mx-auto flex justify-center mb-8">
+    <div id="device-frame" class="device-screen w-full bg-[#09090b] border-2 border-[#27272a] rounded-2xl shadow-2xl overflow-hidden transition-all duration-300 flex flex-col">
+      
+      <!-- Device Top Frame Status Bar -->
+      <div class="bg-[#141416] border-b border-[#27272a] px-4 py-2 flex items-center justify-between text-xs text-zinc-400">
+        <div class="flex items-center gap-2">
+          <span class="w-3 h-3 rounded-full bg-red-500/80 inline-block"></span>
+          <span class="w-3 h-3 rounded-full bg-yellow-500/80 inline-block"></span>
+          <span class="w-3 h-3 rounded-full bg-green-500/80 inline-block"></span>
+          <span id="viewport-label" class="ml-2 font-mono text-[11px] text-zinc-300">Desktop Viewport (1280px wide)</span>
+        </div>
+        <div class="flex items-center gap-3">
+          <span id="layout-pill" class="px-2 py-0.5 rounded text-[10px] bg-violet-500/20 text-violet-300 font-medium border border-violet-500/30">
+            Sidebar Nav + 2-Column Content Grid
+          </span>
+          <span class="text-zinc-500 text-[11px]">localhost:3000</span>
+        </div>
+      </div>
+
+      <!-- INNER SIMULATED APPLICATION -->
+      <div id="simulated-app" class="w-full flex-1 min-h-[720px] flex flex-col bg-[#09090b]">
+
+        <!-- ======================= DESKTOP VIEW ======================= -->
+        <div id="view-desktop" class="flex-1 flex w-full">
+          <!-- Desktop Left Navigation Sidebar -->
+          <aside class="w-60 bg-[#0c0c0e] border-r border-[#27272a] flex flex-col justify-between p-4 shrink-0">
+            <div class="space-y-6">
+              <!-- App Brand -->
+              <div class="flex items-center gap-2.5 px-2">
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-violet-600 to-purple-500 flex items-center justify-center font-bold text-white shadow-lg shadow-purple-500/20">
+                  ⚡
+                </div>
+                <div>
+                  <h2 class="text-sm font-bold text-white leading-tight">WeGro</h2>
+                  <p class="text-[11px] text-zinc-400">Track today. Grow tomorrow!</p>
+                </div>
+              </div>
+
+              <!-- Navigation Links -->
+              <nav class="space-y-1">
+                <div class="text-[10px] uppercase font-bold tracking-wider text-zinc-500 px-3 py-1">Main Menu</div>
+                <a href="javascript:void(0)" class="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-violet-600/15 text-violet-300 font-semibold border border-violet-500/30 text-xs">
+                  <svg class="w-4 h-4 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
+                  Dashboard
+                </a>
+                <a href="javascript:void(0)" class="flex items-center justify-between px-3 py-2.5 rounded-xl text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50 transition-all text-xs font-medium">
+                  <span class="flex items-center gap-3">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    Workouts
+                  </span>
+                  <span class="w-2 h-2 rounded-full bg-violet-500 animate-pulse"></span>
+                </a>
+                <a href="javascript:void(0)" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50 transition-all text-xs font-medium">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+                  Nutrition
+                </a>
+                <a href="javascript:void(0)" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50 transition-all text-xs font-medium">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+                  Progress & Stats
+                </a>
+                <a href="javascript:void(0)" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50 transition-all text-xs font-medium">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                  Settings
+                </a>
+              </nav>
+            </div>
+
+            <!-- Profile Widget at bottom of Sidebar -->
+            <div class="p-3 bg-[#18181b] rounded-xl border border-[#27272a] flex items-center justify-between">
+              <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-full bg-violet-600/30 text-violet-400 border border-violet-500/40 flex items-center justify-center font-bold text-xs">
+                  S
+                </div>
+                <div>
+                  <div class="text-xs font-semibold text-white">Sreejith</div>
+                  <div class="text-[10px] text-zinc-400">Target: 2,400 kcal</div>
+                </div>
+              </div>
+              <span class="w-2 h-2 rounded-full bg-emerald-400" title="Online"></span>
+            </div>
+          </aside>
+
+          <!-- Desktop Main Workspace Content Area -->
+          <div class="flex-1 flex flex-col min-w-0 bg-[#09090b]">
+            <!-- Desktop Top Bar -->
+            <header class="h-14 border-b border-[#27272a] px-6 flex items-center justify-between bg-[#09090b]/80 backdrop-blur-md">
+              <!-- Date Navigator -->
+              <div class="flex items-center bg-[#18181b] border border-[#27272a] rounded-full px-2 py-1 shadow-sm">
+                <button class="p-1 rounded-full text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                </button>
+                <button class="px-2.5 text-xs font-semibold text-zinc-200 hover:text-violet-400 flex items-center gap-1.5">
+                  <svg class="w-3.5 h-3.5 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+                  <span>Today, Oct 31</span>
+                </button>
+                <button class="p-1 rounded-full text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                </button>
+              </div>
+
+              <!-- Quick Desktop Header Action Buttons -->
+              <div class="flex items-center gap-2">
+                <button class="px-3 py-1.5 rounded-lg bg-[#18181b] border border-[#27272a] hover:border-violet-500/40 text-xs font-medium text-zinc-200 flex items-center gap-1.5 transition-all">
+                  <span class="text-violet-400 font-bold">+</span> Log Food
+                </button>
+                <button class="px-3 py-1.5 rounded-lg bg-[#18181b] border border-[#27272a] hover:border-blue-500/40 text-xs font-medium text-zinc-200 flex items-center gap-1.5 transition-all">
+                  <span class="text-cyan-400 font-bold">+</span> 250ml Water
+                </button>
+                <button class="px-3 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold flex items-center gap-1.5 transition-all shadow-md shadow-violet-600/30">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                  Start Workout
+                </button>
+              </div>
+            </header>
+
+            <!-- Desktop Content Layout: 2-Column Balanced Architecture -->
+            <div class="p-6 overflow-y-auto max-w-[1400px] w-full mx-auto">
+              <div class="grid grid-cols-12 gap-6">
+
+                <!-- LEFT / PRIMARY COLUMN (7 of 12 columns) -->
+                <div class="col-span-7 space-y-6">
+                  
+                  <!-- Daily Calories & Macros (Hero Card) -->
+                  <div class="bg-[#18181b] border border-[#27272a] rounded-2xl p-5 shadow-sm relative overflow-hidden">
+                    <div class="flex items-center justify-between mb-4">
+                      <div class="flex items-center gap-2">
+                        <div class="p-1.5 rounded-lg bg-violet-500/20 text-violet-400">
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"/></svg>
+                        </div>
+                        <span class="text-xs font-bold uppercase tracking-wider text-zinc-300">Daily Calories</span>
+                      </div>
+                      <span class="text-xs text-zinc-400">Target: <strong class="text-white">2,400</strong> kcal</span>
+                    </div>
+
+                    <div class="flex items-baseline justify-between mb-3">
+                      <div>
+                        <span class="text-3xl font-extrabold text-white">837</span>
+                        <span class="text-xs text-zinc-400 ml-1">kcal consumed</span>
+                      </div>
+                      <span class="text-sm font-semibold text-violet-400">1,563 kcal left</span>
+                    </div>
+
+                    <!-- Main Progress Bar -->
+                    <div class="w-full h-3 bg-zinc-800 rounded-full overflow-hidden mb-5">
+                      <div class="h-full bg-gradient-to-r from-violet-600 to-purple-400 rounded-full" style="width: 35%"></div>
+                    </div>
+
+                    <!-- Macro Breakdown in 3 Clean Responsive Cards -->
+                    <div class="grid grid-cols-3 gap-3">
+                      <div class="bg-[#121214] border border-[#27272a] rounded-xl p-3">
+                        <div class="flex items-center justify-between text-xs mb-1">
+                          <span class="text-rose-400 font-semibold flex items-center gap-1">🥩 Protein</span>
+                          <span class="text-zinc-500 text-[11px]">44%</span>
+                        </div>
+                        <div class="text-sm font-bold text-white">71 <span class="text-[11px] text-zinc-500 font-normal">/ 160g</span></div>
+                        <div class="w-full h-1.5 bg-zinc-800 rounded-full mt-2 overflow-hidden">
+                          <div class="h-full bg-rose-500 rounded-full" style="width: 44%"></div>
+                        </div>
+                      </div>
+
+                      <div class="bg-[#121214] border border-[#27272a] rounded-xl p-3">
+                        <div class="flex items-center justify-between text-xs mb-1">
+                          <span class="text-amber-400 font-semibold flex items-center gap-1">🍞 Carbs</span>
+                          <span class="text-zinc-500 text-[11px]">43%</span>
+                        </div>
+                        <div class="text-sm font-bold text-white">111 <span class="text-[11px] text-zinc-500 font-normal">/ 260g</span></div>
+                        <div class="w-full h-1.5 bg-zinc-800 rounded-full mt-2 overflow-hidden">
+                          <div class="h-full bg-amber-500 rounded-full" style="width: 43%"></div>
+                        </div>
+                      </div>
+
+                      <div class="bg-[#121214] border border-[#27272a] rounded-xl p-3">
+                        <div class="flex items-center justify-between text-xs mb-1">
+                          <span class="text-yellow-400 font-semibold flex items-center gap-1">🥑 Fat</span>
+                          <span class="text-zinc-500 text-[11px]">13%</span>
+                        </div>
+                        <div class="text-sm font-bold text-white">9 <span class="text-[11px] text-zinc-500 font-normal">/ 70g</span></div>
+                        <div class="w-full h-1.5 bg-zinc-800 rounded-full mt-2 overflow-hidden">
+                          <div class="h-full bg-yellow-400 rounded-full" style="width: 13%"></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Meals & Food Logs Today -->
+                  <div class="bg-[#18181b] border border-[#27272a] rounded-2xl p-5 shadow-sm">
+                    <div class="flex items-center justify-between mb-4">
+                      <div class="flex items-center gap-2">
+                        <span class="text-violet-400">🍴</span>
+                        <h3 class="text-sm font-bold text-white">Meals & Food Logs</h3>
+                      </div>
+                      <button class="text-xs text-violet-400 hover:text-violet-300 font-semibold">+ Add Food</button>
+                    </div>
+
+                    <div class="space-y-2">
+                      <div class="flex items-center justify-between p-3 rounded-xl bg-[#121214] border border-[#27272a]">
+                        <div class="flex items-center gap-3">
+                          <div class="w-8 h-8 rounded-lg bg-orange-500/10 text-orange-400 flex items-center justify-center text-xs font-bold">🍳</div>
+                          <div>
+                            <div class="text-xs font-semibold text-white">Eggs & Oats Bowl</div>
+                            <div class="text-[11px] text-zinc-400">Breakfast • 450 kcal • 28g P</div>
+                          </div>
+                        </div>
+                        <span class="text-xs font-bold text-zinc-300">450 kcal</span>
+                      </div>
+
+                      <div class="flex items-center justify-between p-3 rounded-xl bg-[#121214] border border-[#27272a]">
+                        <div class="flex items-center gap-3">
+                          <div class="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-xs font-bold">🥗</div>
+                          <div>
+                            <div class="text-xs font-semibold text-white">Chicken Salad Wrap</div>
+                            <div class="text-[11px] text-zinc-400">Lunch • 387 kcal • 43g P</div>
+                          </div>
+                        </div>
+                        <span class="text-xs font-bold text-zinc-300">387 kcal</span>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+
+                <!-- RIGHT / SECONDARY COLUMN (5 of 12 columns) -->
+                <div class="col-span-5 space-y-6">
+
+                  <!-- Quick Actions Panel -->
+                  <div class="bg-[#18181b] border border-[#27272a] rounded-2xl p-4 shadow-sm">
+                    <div class="text-[11px] uppercase tracking-wider font-bold text-zinc-400 mb-3 px-1">Quick Log</div>
+                    <div class="grid grid-cols-4 gap-2">
+                      <button class="flex flex-col items-center justify-center p-3 rounded-xl bg-[#121214] border border-[#27272a] hover:border-violet-500/50 hover:bg-zinc-800/60 transition-all">
+                        <span class="text-base text-violet-400">+</span>
+                        <span class="text-[11px] font-medium text-zinc-300 mt-1">Food</span>
+                      </button>
+                      <button class="flex flex-col items-center justify-center p-3 rounded-xl bg-[#121214] border border-[#27272a] hover:border-cyan-500/50 hover:bg-zinc-800/60 transition-all">
+                        <span class="text-base text-cyan-400">💧</span>
+                        <span class="text-[11px] font-medium text-zinc-300 mt-1">Water</span>
+                      </button>
+                      <button class="flex flex-col items-center justify-center p-3 rounded-xl bg-violet-600/20 border border-violet-500/40 text-violet-300 transition-all">
+                        <span class="text-base">🏋️</span>
+                        <span class="text-[11px] font-semibold text-violet-300 mt-1">Workout</span>
+                      </button>
+                      <button class="flex flex-col items-center justify-center p-3 rounded-xl bg-[#121214] border border-[#27272a] hover:border-amber-500/50 hover:bg-zinc-800/60 transition-all">
+                        <span class="text-base text-amber-400">⚖️</span>
+                        <span class="text-[11px] font-medium text-zinc-300 mt-1">Weight</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Today's Training Card -->
+                  <div class="bg-[#18181b] border border-[#27272a] rounded-2xl p-5 shadow-sm relative">
+                    <div class="flex items-center justify-between mb-3">
+                      <div class="flex items-center gap-2">
+                        <span class="text-violet-400">🏋️</span>
+                        <span class="text-xs font-bold uppercase tracking-wider text-zinc-300">Today's Training</span>
+                      </div>
+                      <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                        ✓ 4 Completed
+                      </span>
+                    </div>
+
+                    <h4 class="text-sm font-semibold text-white">Great job today!</h4>
+                    <p class="text-xs text-zinc-400 mt-0.5 mb-4">Session recorded and 4,820 kg volume saved.</p>
+
+                    <button class="w-full py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-semibold text-xs flex items-center justify-center gap-2 shadow-lg shadow-violet-600/25 transition-all">
+                      <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                      Log Another Session
+                    </button>
+                  </div>
+
+                  <!-- Hydration Tracker Card -->
+                  <div class="bg-[#18181b] border border-[#27272a] rounded-2xl p-5 shadow-sm">
+                    <div class="flex items-center justify-between mb-3">
+                      <div class="flex items-center gap-2">
+                        <span class="text-cyan-400">💧</span>
+                        <span class="text-xs font-bold uppercase tracking-wider text-zinc-300">Hydration</span>
+                      </div>
+                      <button class="text-xs text-cyan-400 hover:underline">Logs</button>
+                    </div>
+
+                    <div class="flex items-baseline justify-between mb-2">
+                      <div class="text-2xl font-bold text-white">
+                        1,750 <span class="text-xs text-zinc-400 font-normal">/ 3,000 ml</span>
+                      </div>
+                      <span class="text-xs text-cyan-400 font-medium">58% (1,250ml left)</span>
+                    </div>
+
+                    <div class="w-full h-2.5 bg-zinc-800 rounded-full overflow-hidden mb-4">
+                      <div class="h-full bg-cyan-500 rounded-full" style="width: 58%"></div>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                      <button class="flex-1 py-2 rounded-xl bg-[#121214] border border-[#27272a] hover:border-cyan-500/40 text-xs font-medium text-zinc-200 transition-all">
+                        + 250 ml
+                      </button>
+                      <button class="flex-1 py-2 rounded-xl bg-[#121214] border border-[#27272a] hover:border-cyan-500/40 text-xs font-medium text-zinc-200 transition-all">
+                        + 500 ml
+                      </button>
+                      <button class="px-3 py-2 rounded-xl bg-[#121214] border border-[#27272a] hover:border-zinc-500 text-xs text-zinc-400 transition-all">
+                        Custom
+                      </button>
+                    </div>
+                  </div>
+
+                </div>
+
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ======================= TABLET VIEW ======================= -->
+        <div id="view-tablet" class="hidden flex-1 flex-col w-full max-w-[860px] mx-auto p-4 space-y-4">
+          <!-- Tablet Header with Top Nav Tabs -->
+          <div class="bg-[#18181b] border border-[#27272a] rounded-2xl p-4 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-violet-600 to-purple-500 flex items-center justify-center font-bold text-white">⚡</div>
+              <div>
+                <h2 class="text-sm font-bold text-white">WeGro</h2>
+                <p class="text-[10px] text-zinc-400">Track today. Grow tomorrow!</p>
+              </div>
+            </div>
+
+            <!-- Horizontal Tab Bar (No need for cramped bottom bar on tablet!) -->
+            <div class="flex items-center gap-1 bg-[#121214] p-1 rounded-xl border border-[#27272a]">
+              <span class="px-3 py-1.5 rounded-lg bg-violet-600 text-white text-xs font-semibold">Dashboard</span>
+              <span class="px-3 py-1.5 rounded-lg text-zinc-400 text-xs hover:text-white">Workouts</span>
+              <span class="px-3 py-1.5 rounded-lg text-zinc-400 text-xs hover:text-white">Nutrition</span>
+              <span class="px-3 py-1.5 rounded-lg text-zinc-400 text-xs hover:text-white">Progress</span>
+            </div>
+
+            <!-- Date & Profile -->
+            <div class="flex items-center gap-2">
+              <span class="text-xs bg-[#121214] px-2.5 py-1 rounded-lg border border-[#27272a] text-zinc-300">Today</span>
+              <div class="w-7 h-7 rounded-full bg-violet-600/30 text-violet-400 flex items-center justify-center font-bold text-xs border border-violet-500/40">S</div>
+            </div>
+          </div>
+
+          <!-- Tablet 2-Column Balanced Grid -->
+          <div class="grid grid-cols-2 gap-4">
+            
+            <!-- Tablet Left Col -->
+            <div class="space-y-4">
+              <!-- Calorie & Macros -->
+              <div class="bg-[#18181b] border border-[#27272a] rounded-2xl p-4 shadow-sm">
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-xs font-bold uppercase text-zinc-300">Daily Calories</span>
+                  <span class="text-xs text-zinc-400">Target: 2,400</span>
+                </div>
+                <div class="text-2xl font-bold text-white mb-1">837 <span class="text-xs text-zinc-400">consumed</span></div>
+                <div class="w-full h-2.5 bg-zinc-800 rounded-full mb-3">
+                  <div class="h-full bg-violet-500 rounded-full" style="width: 35%"></div>
+                </div>
+                <div class="grid grid-cols-3 gap-2 text-center text-xs">
+                  <div class="p-2 bg-[#121214] rounded-lg">
+                    <span class="text-rose-400 block text-[11px]">Protein</span>
+                    <strong class="text-white">71g</strong>
+                  </div>
+                  <div class="p-2 bg-[#121214] rounded-lg">
+                    <span class="text-amber-400 block text-[11px]">Carbs</span>
+                    <strong class="text-white">111g</strong>
+                  </div>
+                  <div class="p-2 bg-[#121214] rounded-lg">
+                    <span class="text-yellow-400 block text-[11px]">Fat</span>
+                    <strong class="text-white">9g</strong>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Today's Training -->
+              <div class="bg-[#18181b] border border-[#27272a] rounded-2xl p-4 shadow-sm">
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-xs font-bold text-zinc-300">Today's Training</span>
+                  <span class="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-medium">✓ 4 Completed</span>
+                </div>
+                <p class="text-xs text-zinc-400 mb-3">Great job today! Session recorded.</p>
+                <button class="w-full py-2 bg-violet-600 rounded-xl text-xs font-semibold text-white">Log Another</button>
+              </div>
+            </div>
+
+            <!-- Tablet Right Col -->
+            <div class="space-y-4">
+              <!-- Quick Actions -->
+              <div class="bg-[#18181b] border border-[#27272a] rounded-2xl p-4 shadow-sm">
+                <div class="text-xs font-bold text-zinc-400 mb-3">Quick Actions</div>
+                <div class="grid grid-cols-4 gap-2">
+                  <button class="p-2 bg-[#121214] border border-[#27272a] rounded-xl text-center">
+                    <span class="text-violet-400 block text-sm">+</span>
+                    <span class="text-[10px] text-zinc-300">Food</span>
+                  </button>
+                  <button class="p-2 bg-[#121214] border border-[#27272a] rounded-xl text-center">
+                    <span class="text-cyan-400 block text-sm">💧</span>
+                    <span class="text-[10px] text-zinc-300">Water</span>
+                  </button>
+                  <button class="p-2 bg-violet-600/20 border border-violet-500/40 rounded-xl text-center">
+                    <span class="text-sm">🏋️</span>
+                    <span class="text-[10px] text-violet-300">Workout</span>
+                  </button>
+                  <button class="p-2 bg-[#121214] border border-[#27272a] rounded-xl text-center">
+                    <span class="text-amber-400 block text-sm">⚖️</span>
+                    <span class="text-[10px] text-zinc-300">Weight</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Hydration Card -->
+              <div class="bg-[#18181b] border border-[#27272a] rounded-2xl p-4 shadow-sm">
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-xs font-bold text-zinc-300">Hydration</span>
+                  <span class="text-xs text-cyan-400">58%</span>
+                </div>
+                <div class="text-lg font-bold text-white mb-1">1,750 <span class="text-xs text-zinc-400 font-normal">/ 3,000 ml</span></div>
+                <div class="w-full h-2 bg-zinc-800 rounded-full mb-3">
+                  <div class="h-full bg-cyan-500 rounded-full" style="width: 58%"></div>
+                </div>
+                <div class="flex gap-2">
+                  <button class="flex-1 py-1.5 bg-[#121214] border border-[#27272a] text-xs rounded-lg text-zinc-200">+ 250 ml</button>
+                  <button class="flex-1 py-1.5 bg-[#121214] border border-[#27272a] text-xs rounded-lg text-zinc-200">+ 500 ml</button>
+                </div>
+              </div>
+
+              <!-- Meals Mini Summary -->
+              <div class="bg-[#18181b] border border-[#27272a] rounded-2xl p-4 shadow-sm">
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-xs font-bold text-white">Logged Meals</span>
+                  <span class="text-xs text-violet-400 font-semibold">+ Add</span>
+                </div>
+                <div class="text-xs text-zinc-400 space-y-1">
+                  <div class="flex justify-between py-1 border-b border-zinc-800">
+                    <span>🍳 Breakfast (Eggs & Oats)</span>
+                    <span class="text-zinc-200 font-medium">450 kcal</span>
+                  </div>
+                  <div class="flex justify-between py-1">
+                    <span>🥗 Lunch (Chicken Wrap)</span>
+                    <span class="text-zinc-200 font-medium">387 kcal</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- ======================= MOBILE VIEW (CURRENT) ======================= -->
+        <div id="view-mobile" class="hidden flex-1 flex flex-col items-center justify-start p-4">
+          <div class="w-full max-w-sm bg-[#09090b] border border-[#27272a] rounded-2xl p-4 shadow-2xl relative pb-20 space-y-4">
+            
+            <div class="flex items-center justify-between pb-3 border-b border-[#27272a]">
+              <div class="flex items-center gap-2">
+                <span class="w-6 h-6 rounded bg-violet-600 flex items-center justify-center text-xs">⚡</span>
+                <span class="text-xs font-bold text-white">WeGro</span>
+              </div>
+              <span class="text-[11px] bg-[#18181b] px-2 py-0.5 rounded border border-[#27272a] text-zinc-300">Today</span>
+            </div>
+
+            <!-- Single Column Stacking (Current Mobile) -->
+            <div class="bg-[#18181b] border border-[#27272a] rounded-xl p-3 text-xs">
+              <div class="flex justify-between text-zinc-400 text-[10px] uppercase font-bold">
+                <span>Daily Calories</span>
+                <span>Target: 2,400</span>
+              </div>
+              <div class="text-xl font-bold text-white mt-1">837 kcal <span class="text-[11px] text-violet-400 font-normal">1,563 left</span></div>
+              <div class="w-full h-2 bg-zinc-800 rounded-full mt-2">
+                <div class="w-1/3 h-full bg-violet-500 rounded-full"></div>
+              </div>
+              <div class="flex justify-between text-[10px] text-zinc-400 mt-2">
+                <span>🥩 71/160g</span>
+                <span>🍞 111/260g</span>
+                <span>🥑 9/70g</span>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-4 gap-1.5 text-center text-[10px]">
+              <div class="p-2 bg-[#18181b] rounded-lg border border-[#27272a]">+ Food</div>
+              <div class="p-2 bg-[#18181b] rounded-lg border border-[#27272a]">💧 Water</div>
+              <div class="p-2 bg-violet-600/30 rounded-lg border border-violet-500/40 text-violet-300">🏋️ Workout</div>
+              <div class="p-2 bg-[#18181b] rounded-lg border border-[#27272a]">⚖️ Weight</div>
+            </div>
+
+            <div class="bg-[#18181b] border border-[#27272a] rounded-xl p-3 text-xs">
+              <div class="flex justify-between text-zinc-300 font-bold mb-1">
+                <span>Today's Training</span>
+                <span class="text-[10px] text-emerald-400">4 Completed</span>
+              </div>
+              <p class="text-[11px] text-zinc-400 mb-2">Great job today! Session recorded.</p>
+              <button class="w-full py-1.5 bg-violet-600 rounded-lg text-white font-semibold text-xs">Log Another</button>
+            </div>
+
+            <div class="bg-[#18181b] border border-[#27272a] rounded-xl p-3 text-xs">
+              <div class="flex justify-between text-zinc-300 font-bold mb-1">
+                <span>Hydration</span>
+                <span class="text-cyan-400">58%</span>
+              </div>
+              <div class="text-base font-bold text-white mb-2">1,750 / 3,000 ml</div>
+              <div class="flex gap-2">
+                <button class="flex-1 py-1 bg-[#121214] rounded border border-[#27272a] text-[11px]">+ 250ml</button>
+                <button class="flex-1 py-1 bg-[#121214] rounded border border-[#27272a] text-[11px]">+ 500ml</button>
+              </div>
+            </div>
+
+            <!-- Mobile Bottom Bar -->
+            <div class="absolute bottom-0 left-0 right-0 bg-[#0c0c0e] border-t border-[#27272a] py-2 px-3 flex justify-between text-[9px] text-zinc-400">
+              <span class="text-violet-400 font-bold flex flex-col items-center">📊 Dashboard</span>
+              <span class="flex flex-col items-center">🏋️ Workouts</span>
+              <span class="flex flex-col items-center">🍴 Nutrition</span>
+              <span class="flex flex-col items-center">📈 Progress</span>
+              <span class="flex flex-col items-center">⚙️ Settings</span>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Interactive JavaScript to toggle viewports -->
+  <script>
+    function setDevice(device) {
+      const frame = document.getElementById('device-frame');
+      const label = document.getElementById('viewport-label');
+      const pill = document.getElementById('layout-pill');
+
+      const btnDesktop = document.getElementById('btn-desktop');
+      const btnTablet = document.getElementById('btn-tablet');
+      const btnMobile = document.getElementById('btn-mobile');
+
+      const vDesktop = document.getElementById('view-desktop');
+      const vTablet = document.getElementById('view-tablet');
+      const vMobile = document.getElementById('view-mobile');
+
+      // Reset button styles
+      [btnDesktop, btnTablet, btnMobile].forEach(btn => {
+        btn.className = "px-3.5 py-2 rounded-lg text-xs font-medium text-zinc-400 hover:text-white flex items-center gap-2 transition-all";
+      });
+
+      // Hide all views
+      vDesktop.classList.add('hidden');
+      vDesktop.classList.remove('flex');
+      vTablet.classList.add('hidden');
+      vTablet.classList.remove('flex');
+      vMobile.classList.add('hidden');
+      vMobile.classList.remove('flex');
+
+      if (device === 'desktop') {
+        btnDesktop.className = "px-3.5 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all bg-violet-600 text-white shadow-lg shadow-violet-600/30";
+        frame.style.maxWidth = "100%";
+        label.innerText = "Desktop Viewport (1280px+ wide)";
+        pill.innerText = "Sidebar Nav + 2-Column Content Grid";
+        vDesktop.classList.remove('hidden');
+        vDesktop.classList.add('flex');
+      } else if (device === 'tablet') {
+        btnTablet.className = "px-3.5 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all bg-violet-600 text-white shadow-lg shadow-violet-600/30";
+        frame.style.maxWidth = "880px";
+        label.innerText = "Tablet Viewport (768px - 1024px)";
+        pill.innerText = "Top Nav Tabs + Balanced 2-Column Grid";
+        vTablet.classList.remove('hidden');
+        vTablet.classList.add('flex');
+      } else if (device === 'mobile') {
+        btnMobile.className = "px-3.5 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all bg-violet-600 text-white shadow-lg shadow-violet-600/30";
+        frame.style.maxWidth = "460px";
+        label.innerText = "Mobile Viewport (375px - 480px)";
+        pill.innerText = "Existing Single-Column + Bottom Bar (Untouched)";
+        vMobile.classList.remove('hidden');
+        vMobile.classList.add('flex');
+      }
+    }
+  </script>
+</body>
+</html>
