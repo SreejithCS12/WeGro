@@ -41,9 +41,10 @@ import {
   Edit3,
 } from "lucide-react";
 import { INITIAL_EXERCISES } from "@/lib/data/seed";
+import { Module4NutritionSketch } from "./Module4NutritionSketch";
 
 type ViewMode = "auto" | "desktop" | "tablet" | "mobile";
-type ModuleMode = "module2" | "module3";
+type ModuleMode = "module2" | "module3" | "module4";
 type WorkoutFlowStep = "staging" | "active" | "summary";
 type SetType = "normal" | "warmup" | "drop" | "failure";
 type MobileLayoutMode = "spotlight" | "table" | "stacked";
@@ -336,7 +337,7 @@ const DEFAULT_WEEKLY_SCHEDULE: DaySchedule[] = [
 ];
 
 export default function SketchPage() {
-  const [activeModule, setActiveModule] = useState<ModuleMode>("module3");
+  const [activeModule, setActiveModule] = useState<ModuleMode>("module4");
   const [viewMode, setViewMode] = useState<ViewMode>("auto");
 
   // Workflow Step for Module 3:
@@ -744,46 +745,83 @@ export default function SketchPage() {
           </Link>
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-300 font-bold uppercase tracking-wider shrink-0">
-                Wireframe Sketch
+              <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider shrink-0 ${
+                activeModule === "module4" ? "bg-emerald-500/20 text-emerald-300" : "bg-violet-500/20 text-violet-300"
+              }`}>
+                {activeModule === "module4" ? "Module 4 Prototype" : "Module 3 Prototype"}
               </span>
               <h1 className="text-xs sm:text-sm font-bold text-white truncate">
-                Weekly Split Planner & Today Staging
+                {activeModule === "module4"
+                  ? "Indian Nutrition & Macro Studio"
+                  : "Weekly Split Planner & Today Staging"}
               </h1>
             </div>
             <p className="text-[11px] text-zinc-400 hidden sm:block">
-              Weekly Plan (Mon: Chest & Trice, Tue: Back & Bice...) + Today Customizer + Session Logger
+              {activeModule === "module4"
+                ? "Indian Staples • Dual Kitchen/Household Units (Roti/Katori) • ⚡ Quick Calorie Add • ⭐ 1-Tap Combos"
+                : "Weekly Plan (Mon: Chest & Trice, Tue: Back & Bice...) + Today Customizer + Session Logger"}
             </p>
           </div>
         </div>
 
         {/* Viewport & Flow State Controls */}
         <div className="flex flex-wrap items-center gap-2">
-          {/* Step Selector Pills */}
+          {/* Module Switcher Pills */}
           <div className="flex items-center bg-[#09090b] p-1 rounded-xl border border-[#27272a]">
             <button
-              onClick={() => setWorkoutStep("staging")}
+              onClick={() => setActiveModule("module3")}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
-                workoutStep === "staging"
-                  ? "bg-violet-600 text-white shadow-md shadow-violet-600/30"
-                  : "text-zinc-400 hover:text-white"
-              }`}
-            >
-              <CalendarDays className="w-3.5 h-3.5" />
-              <span>1. Weekly & Today Plan</span>
-            </button>
-            <button
-              onClick={() => setWorkoutStep("active")}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
-                workoutStep === "active"
+                activeModule === "module3"
                   ? "bg-violet-600 text-white shadow-md shadow-violet-600/30"
                   : "text-zinc-400 hover:text-white"
               }`}
             >
               <Dumbbell className="w-3.5 h-3.5" />
-              <span>2. Active Session</span>
+              <span>Module 3: Workouts</span>
+            </button>
+            <button
+              onClick={() => setActiveModule("module4")}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 relative ${
+                activeModule === "module4"
+                  ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/30"
+                  : "text-zinc-400 hover:text-white"
+              }`}
+            >
+              <Utensils className="w-3.5 h-3.5" />
+              <span>Module 4: Nutrition</span>
+              <span className="px-1.5 py-0.2 bg-emerald-400 text-black text-[9px] font-black rounded-full animate-pulse">
+                NEW
+              </span>
             </button>
           </div>
+
+          {/* Module 3 Step Selector Pills (Only visible when activeModule === 'module3') */}
+          {activeModule === "module3" && (
+            <div className="flex items-center bg-[#09090b] p-1 rounded-xl border border-[#27272a]">
+              <button
+                onClick={() => setWorkoutStep("staging")}
+                className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+                  workoutStep === "staging"
+                    ? "bg-violet-600 text-white shadow-md shadow-violet-600/30"
+                    : "text-zinc-400 hover:text-white"
+                }`}
+              >
+                <CalendarDays className="w-3.5 h-3.5" />
+                <span>1. Staging</span>
+              </button>
+              <button
+                onClick={() => setWorkoutStep("active")}
+                className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+                  workoutStep === "active"
+                    ? "bg-violet-600 text-white shadow-md shadow-violet-600/30"
+                    : "text-zinc-400 hover:text-white"
+                }`}
+              >
+                <Dumbbell className="w-3.5 h-3.5" />
+                <span>2. Active</span>
+              </button>
+            </div>
+          )}
 
           {/* Viewport Simulator */}
           <div className="flex items-center bg-[#09090b] p-1 rounded-xl border border-[#27272a]">
@@ -874,11 +912,13 @@ export default function SketchPage() {
                     onClick={() => {
                       if (item.id === "dashboard") setActiveModule("module2");
                       if (item.id === "workouts") setActiveModule("module3");
+                      if (item.id === "nutrition") setActiveModule("module4");
                     }}
                     className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition ${
                       (activeModule === "module3" && item.id === "workouts") ||
+                      (activeModule === "module4" && item.id === "nutrition") ||
                       (activeModule === "module2" && item.id === "dashboard")
-                        ? "bg-violet-600/10 text-violet-400 border border-violet-500/30"
+                        ? "bg-emerald-600/10 text-emerald-400 border border-emerald-500/30"
                         : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900"
                     }`}
                   >
@@ -886,23 +926,40 @@ export default function SketchPage() {
                       <item.icon className="w-4 h-4" />
                       <span>{item.label}</span>
                     </div>
-                    {item.hasBadge && <span className="w-2 h-2 rounded-full bg-violet-400 animate-pulse" />}
+                    {item.id === "nutrition" ? (
+                      <span className="px-1.5 py-0.2 bg-emerald-500/20 text-emerald-400 font-bold text-[9px] rounded uppercase">
+                        NEW
+                      </span>
+                    ) : (
+                      item.hasBadge && <span className="w-2 h-2 rounded-full bg-violet-400 animate-pulse" />
+                    )}
                   </button>
                 ))}
               </nav>
             </div>
 
-            {/* Quick Session Stats Widget */}
-            <div className="bg-[#141417] p-3 rounded-xl border border-[#27272a] space-y-1.5">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-zinc-400">Gym Session</span>
-                <span className="text-emerald-400 font-mono font-bold">
-                  {workoutStep === "active" ? "LIVE" : "STAGED"}
-                </span>
+            {/* Quick Session / Nutrition Stats Widget */}
+            {activeModule === "module4" ? (
+              <div className="bg-[#141417] p-3 rounded-xl border border-[#27272a] space-y-1.5">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-zinc-400">Daily Target</span>
+                  <span className="text-emerald-400 font-mono font-bold">2,200 kcal</span>
+                </div>
+                <div className="text-sm font-bold text-white font-mono">160g Protein</div>
+                <p className="text-[10px] text-zinc-400">Indian Staples + Dual Units</p>
               </div>
-              <div className="text-sm font-bold text-white font-mono">{formatTime(sessionSeconds)}</div>
-              <p className="text-[10px] text-zinc-400">Volume: {totalVolume.toLocaleString()} kg</p>
-            </div>
+            ) : (
+              <div className="bg-[#141417] p-3 rounded-xl border border-[#27272a] space-y-1.5">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-zinc-400">Gym Session</span>
+                  <span className="text-emerald-400 font-mono font-bold">
+                    {workoutStep === "active" ? "LIVE" : "STAGED"}
+                  </span>
+                </div>
+                <div className="text-sm font-bold text-white font-mono">{formatTime(sessionSeconds)}</div>
+                <p className="text-[10px] text-zinc-400">Volume: {totalVolume.toLocaleString()} kg</p>
+              </div>
+            )}
           </aside>
         )}
 
@@ -910,14 +967,22 @@ export default function SketchPage() {
         <div className="flex-1 flex flex-col min-w-0 bg-[#09090b] w-full overflow-hidden relative">
           {/* Toast Notification Pill */}
           {toastMessage && (
-            <div className="absolute top-16 left-1/2 -translate-x-1/2 z-50 bg-violet-600/95 text-white text-xs font-bold px-4 py-2 rounded-full shadow-2xl border border-violet-400/50 backdrop-blur-md flex items-center gap-2 animate-bounce">
-              <Sparkles className="w-3.5 h-3.5 text-violet-200" />
+            <div className="absolute top-16 left-1/2 -translate-x-1/2 z-50 bg-emerald-600/95 text-white text-xs font-bold px-4 py-2 rounded-full shadow-2xl border border-emerald-400/50 backdrop-blur-md flex items-center gap-2 animate-bounce">
+              <Sparkles className="w-3.5 h-3.5 text-emerald-200" />
               <span>{toastMessage}</span>
             </div>
           )}
 
-          {/* Header */}
-          <header className="h-14 border-b border-[#27272a] px-3 sm:px-6 flex items-center justify-between bg-[#09090b]/90 backdrop-blur-md shrink-0">
+          {activeModule === "module4" ? (
+            <Module4NutritionSketch
+              isMobileSim={isMobileSim}
+              viewMode={viewMode}
+              showToast={showToast}
+            />
+          ) : (
+            <>
+              {/* Header */}
+              <header className="h-14 border-b border-[#27272a] px-3 sm:px-6 flex items-center justify-between bg-[#09090b]/90 backdrop-blur-md shrink-0">
             <div className="flex items-center gap-2 min-w-0">
               <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-violet-600 to-purple-500 flex items-center justify-center font-bold text-white text-xs shrink-0">
                 🏋️
@@ -1882,8 +1947,38 @@ export default function SketchPage() {
               </div>
             )}
           </main>
+        </>
+      )}
+
+      {/* MOBILE BOTTOM NAVIGATION BAR FOR SIMULATED IPHONE */}
+      {isMobileSim && (
+        <div className="sticky bottom-0 left-0 right-0 bg-[#0c0c0e]/95 backdrop-blur-md border-t border-[#27272a] px-3 py-2 flex items-center justify-around z-30 shrink-0">
+          <button
+            onClick={() => setActiveModule("module3")}
+            className={`flex flex-col items-center gap-0.5 py-1 px-4 rounded-xl transition ${
+              activeModule === "module3"
+                ? "text-violet-400 font-bold"
+                : "text-zinc-500 hover:text-zinc-300"
+            }`}
+          >
+            <Dumbbell className="w-4 h-4" />
+            <span className="text-[10px]">Workouts</span>
+          </button>
+          <button
+            onClick={() => setActiveModule("module4")}
+            className={`flex flex-col items-center gap-0.5 py-1 px-4 rounded-xl transition ${
+              activeModule === "module4"
+                ? "text-emerald-400 font-bold"
+                : "text-zinc-500 hover:text-zinc-300"
+            }`}
+          >
+            <Utensils className="w-4 h-4" />
+            <span className="text-[10px]">Nutrition</span>
+          </button>
         </div>
-      </div>
+      )}
+    </div>
+  </div>
 
       {/* MODAL: ADD EXERCISE TO TODAY'S PLAN */}
       {isAddExerciseModalOpen && (
