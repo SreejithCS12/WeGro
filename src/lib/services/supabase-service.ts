@@ -38,6 +38,8 @@ export async function signUpWithEmail(email: string, password: string, displayNa
   const supabase = createClient();
   if (!supabase) throw new Error("Supabase is not configured.");
 
+  const redirectUrl = typeof window !== "undefined" ? window.location.origin : undefined;
+
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
@@ -45,6 +47,7 @@ export async function signUpWithEmail(email: string, password: string, displayNa
       data: {
         display_name: displayName,
       },
+      emailRedirectTo: redirectUrl,
     },
   });
 
