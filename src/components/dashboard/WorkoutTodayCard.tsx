@@ -64,8 +64,8 @@ export function WorkoutTodayCard({
     );
   }
 
-  // 2. If day is marked as Rest Day
-  if (isRestDay) {
+  // 2. If day is marked as Rest Day or scheduled as Rest Day
+  if (isRestDay || todayRoutineName === "Rest Day") {
     return (
       <div className="bg-[#141417] border border-emerald-500/40 rounded-2xl p-4 shadow-lg space-y-3 transition-all duration-300">
         <div className="flex items-center justify-between">
@@ -75,14 +75,22 @@ export function WorkoutTodayCard({
               Active Recovery
             </span>
           </div>
-          {onToggleRestDay && (
+          <div className="flex items-center gap-2">
             <button
-              onClick={onToggleRestDay}
-              className="text-[11px] font-semibold text-zinc-400 hover:text-white bg-zinc-800 px-2.5 py-0.5 rounded-lg border border-[#27272a] transition active:scale-95"
+              onClick={onStartWorkout}
+              className="py-1 px-2.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-xs font-medium text-zinc-300 transition-colors"
             >
-              Undo Rest Day
+              Train Today
             </button>
-          )}
+            {onToggleRestDay && (
+              <button
+                onClick={onToggleRestDay}
+                className="text-[11px] font-semibold text-zinc-400 hover:text-white bg-zinc-800 px-2.5 py-0.5 rounded-lg border border-[#27272a] transition active:scale-95"
+              >
+                Undo Rest Day
+              </button>
+            )}
+          </div>
         </div>
         <div className="text-center py-2 space-y-1">
           <div className="text-2xl">🛋️</div>

@@ -87,10 +87,15 @@ export default function Home() {
     setIsAddFoodOpen(true);
   };
 
-  const todayDayIndex = new Date().getDay();
-  const scheduledRoutineId = store.state.weeklySchedule?.[todayDayIndex];
+  const [currentYear, currentMonth, currentDay] = currentDate.split("-").map(Number);
+  const currentDayIndex = new Date(currentYear, currentMonth - 1, currentDay).getDay();
+  const scheduledRoutineId = store.state.weeklySchedule?.[currentDayIndex];
   const todayRoutine = store.state.routines.find((r) => r.id === scheduledRoutineId);
-  const todayRoutineName = scheduledRoutineId === null ? "Rest Day" : todayRoutine?.name || "Resistance Training";
+  const isScheduleRestDay = scheduledRoutineId === null || scheduledRoutineId === undefined;
+  const effectiveIsRestDay = dailyTotals.isRestDay || isScheduleRestDay;
+  const todayRoutineName = isScheduleRestDay
+    ? "Rest Day"
+    : todayRoutine?.name || "Resistance Training";
 
   const handleStartWorkout = (
     routineId?: string,
@@ -170,9 +175,9 @@ export default function Home() {
                 <WorkoutTodayCard
                   activeSession={store.activeWorkout}
                   completedCount={dailyTotals.completedWorkoutsCount}
-                  isRestDay={dailyTotals.isRestDay}
+                  isRestDay={effectiveIsRestDay}
                   todayRoutineName={todayRoutineName}
-                  onToggleRestDay={() => store.toggleRestDay(currentDate)}
+                  onToggleRestDay={isScheduleRestDay ? undefined : () => store.toggleRestDay(currentDate)}
                   onStartWorkout={() => handleStartWorkout()}
                   onResumeWorkout={() => setCurrentTab("workouts")}
                   onDiscardWorkout={store.discardWorkout}
@@ -235,9 +240,9 @@ export default function Home() {
                     <WorkoutTodayCard
                       activeSession={store.activeWorkout}
                       completedCount={dailyTotals.completedWorkoutsCount}
-                      isRestDay={dailyTotals.isRestDay}
+                      isRestDay={effectiveIsRestDay}
                       todayRoutineName={todayRoutineName}
-                      onToggleRestDay={() => store.toggleRestDay(currentDate)}
+                      onToggleRestDay={isScheduleRestDay ? undefined : () => store.toggleRestDay(currentDate)}
                       onStartWorkout={() => handleStartWorkout()}
                       onResumeWorkout={() => setCurrentTab("workouts")}
                       onDiscardWorkout={store.discardWorkout}
