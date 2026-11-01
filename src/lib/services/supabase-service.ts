@@ -98,7 +98,17 @@ export async function upsertProfile(profile: Partial<Profile> & { id: string }):
   const supabase = createClient();
   if (!supabase) return null;
 
-  // Notice: theme_color does not exist in Supabase profiles table, strip it safely
+  // Persist theme_color to Supabase Auth user_metadata so it syncs reliably across all devices
+  if (profile.theme_color) {
+    try {
+      await supabase.auth.updateUser({
+        data: { theme_color: profile.theme_color },
+      });
+    } catch (e) {
+      console.warn("Could not sync theme_color to auth user_metadata:", e);
+    }
+  }
+
   const validProfile: any = {
     id: profile.id,
     updated_at: new Date().toISOString(),
@@ -113,6 +123,18 @@ export async function upsertProfile(profile: Partial<Profile> & { id: string }):
   if (profile.preferred_units !== undefined) validProfile.preferred_units = profile.preferred_units;
   if (profile.timezone !== undefined) validProfile.timezone = profile.timezone;
   if (profile.latest_weight_kg !== undefined) validProfile.latest_weight_kg = profile.latest_weight_kg;
+
+  // Attempt upsert with theme_color first; if column does not exist in profiles table, fallback without it
+  if (profile.theme_color !== undefined) {
+    const withTheme = { ...validProfile, theme_color: profile.theme_color };
+    const { data, error } = await supabase
+      .from("profiles")
+      .upsert(withTheme)
+      .select()
+      .single();
+
+    if (!error && data) return data as Profile;
+  }
 
   const { data, error } = await supabase
     .from("profiles")

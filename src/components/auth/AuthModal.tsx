@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, Mail, Lock, User, Sparkles, AlertCircle, CheckCircle2, Loader2, ShieldCheck, ArrowRight } from "lucide-react";
+import { X, Mail, Lock, User, Sparkles, AlertCircle, CheckCircle2, Loader2, ShieldCheck, ArrowRight, Eye, EyeOff } from "lucide-react";
 import { WeGroLogo } from "@/components/ui/WeGroLogo";
 import { signInWithEmail, signUpWithEmail } from "@/lib/services/supabase-service";
 
@@ -25,12 +25,14 @@ export function AuthModal({
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       setTab(defaultTab);
       setErrorMessage(null);
       setSuccessMessage(null);
+      setShowPassword(false);
     }
   }, [isOpen, defaultTab]);
 
@@ -224,15 +226,30 @@ export function AuthModal({
               <span className="text-[10px] text-zinc-500">Min 6 characters</span>
             </div>
             <div className="relative">
-              <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+              <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 pointer-events-none" />
               <input
-                type="password"
+                type={showPassword ? "text" : "password"}
                 required
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-zinc-900/80 border border-zinc-800 rounded-xl text-sm text-white placeholder-zinc-500 outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-all font-mono"
+                className={`w-full pl-10 pr-10 py-2.5 bg-zinc-900/80 border border-zinc-800 rounded-xl text-sm text-white placeholder-zinc-500 outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-all ${
+                  showPassword ? "" : "font-mono"
+                }`}
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword((prev) => !prev)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-zinc-400 hover:text-white transition-colors rounded-lg focus:outline-none focus:ring-1 focus:ring-violet-500/50 cursor-pointer"
+                aria-label={showPassword ? "Hide password" : "Show password"}
+                title={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? (
+                  <EyeOff className="w-4 h-4" />
+                ) : (
+                  <Eye className="w-4 h-4" />
+                )}
+              </button>
             </div>
           </div>
 

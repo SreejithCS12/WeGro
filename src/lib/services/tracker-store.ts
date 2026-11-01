@@ -47,6 +47,7 @@ import {
 } from "@/lib/services/supabase-service";
 import { syncQueue, SyncQueueState } from "@/lib/services/sync-queue";
 import { createClient } from "@/lib/supabase/client";
+import { applyTheme, getStoredTheme } from "@/lib/theme";
 
 const STORAGE_KEY_PREFIX = "pft_v2_";
 
@@ -349,6 +350,10 @@ export function useTrackerStore() {
       const latestLoggedWeight = sortedWeights.length > 0 ? sortedWeights[sortedWeights.length - 1].weight_kg : null;
       const effectiveWeight = latestLoggedWeight ?? profile?.latest_weight_kg ?? baseState.profile.latest_weight_kg ?? 78.5;
 
+      // Determine effective theme from cloud (profiles table or auth user_metadata), with fallback to local state
+      const cloudTheme = (profile as any)?.theme_color || user.user_metadata?.theme_color;
+      const effectiveTheme = cloudTheme || baseState.profile.theme_color || getStoredTheme() || "purple";
+
       // Assemble merged state: For an authenticated user, Supabase is the single source of truth.
       const mergedState: TrackerState = {
         ...baseState,
@@ -356,7 +361,7 @@ export function useTrackerStore() {
         profile: {
           ...(profile || baseState.profile),
           latest_weight_kg: effectiveWeight,
-          theme_color: baseState.profile.theme_color || "purple",
+          theme_color: effectiveTheme,
         },
         goals: remoteGoals.length > 0 ? remoteGoals : baseState.goals,
         foodLogs: remoteFoodLogs,
@@ -370,6 +375,7 @@ export function useTrackerStore() {
       };
 
       saveState(mergedState, user.id);
+      applyTheme(effectiveTheme);
       setSyncStatus("synced");
     } catch (err) {
       console.error("Cloud sync error:", err);
@@ -537,6 +543,10 @@ export function useTrackerStore() {
   const updateProfile = (profileUpdates: Partial<Profile>) => {
     const updated = { ...state.profile, ...profileUpdates, updated_at: new Date().toISOString() };
     saveState({ ...state, profile: updated });
+
+    if (profileUpdates.theme_color) {
+      applyTheme(profileUpdates.theme_color);
+    }
 
     if (authUser) {
       syncQueue.enqueue("UPSERT_PROFILE", {
