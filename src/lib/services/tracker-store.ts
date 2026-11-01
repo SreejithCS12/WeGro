@@ -916,6 +916,80 @@ export function useTrackerStore() {
     }
   };
 
+  const updateRoutine = (
+    routineId: string,
+    updates: Partial<Omit<WorkoutRoutine, "exercises">> & {
+      exercises?: Array<{
+        exercise_id: string;
+        order_index?: number;
+        target_sets?: number;
+        target_reps?: string;
+        target_weight_kg?: number | null;
+        rest_seconds?: number;
+        notes?: string | null;
+      }>;
+    }
+  ) => {
+    let updatedRoutineObj: WorkoutRoutine | null = null;
+    const updatedRoutines = state.routines.map((routine) => {
+      if (routine.id !== routineId) return routine;
+      const exercises = updates.exercises
+        ? updates.exercises.map((re, idx) => ({
+            id: generateUUID(),
+            routine_id: routineId,
+            exercise_id: resolveExerciseUUID(re.exercise_id, state.exercises),
+            order_index: re.order_index ?? idx,
+            target_sets: re.target_sets ?? 3,
+            target_reps: re.target_reps ?? "10",
+            target_weight_kg: re.target_weight_kg ?? 20,
+            rest_seconds: re.rest_seconds ?? 90,
+            notes: re.notes ?? null,
+            created_at: new Date().toISOString(),
+          }))
+        : routine.exercises;
+
+      updatedRoutineObj = {
+        ...routine,
+        ...updates,
+        exercises,
+        updated_at: new Date().toISOString(),
+      };
+      return updatedRoutineObj;
+    });
+
+    saveState({ ...state, routines: updatedRoutines });
+
+    if (authUser && updatedRoutineObj) {
+      syncQueue.enqueue("UPSERT_ROUTINE", updatedRoutineObj);
+    }
+
+    return updatedRoutineObj;
+  };
+
+  const getLastExercisePerformance = (exerciseId: string) => {
+    const resolvedExId = resolveExerciseUUID(exerciseId, state.exercises);
+    const completedSessions = state.sessions
+      .filter((s) => s.status === "completed" && s.sets && s.sets.some((set) => set.exercise_id === resolvedExId || set.exercise_id === exerciseId))
+      .sort((a, b) => (b.completed_at || b.entry_date).localeCompare(a.completed_at || a.entry_date));
+
+    if (completedSessions.length === 0) return null;
+    const lastSession = completedSessions[0];
+    const exSets = (lastSession.sets || []).filter(
+      (s) => (s.exercise_id === resolvedExId || s.exercise_id === exerciseId) && s.is_completed
+    );
+    if (exSets.length === 0) return null;
+
+    const maxWeight = Math.max(...exSets.map((s) => s.weight_kg), 0);
+    const firstReps = exSets[0].reps || 10;
+    return {
+      date: lastSession.entry_date,
+      setsCount: exSets.length,
+      maxWeight,
+      reps: firstReps,
+      summary: `${maxWeight}kg × ${firstReps} reps (${exSets.length} sets)`,
+    };
+  };
+
   // Weekly Schedule Action
   const updateWeeklySchedule = (dayIndex: number, routineId: string | null) => {
     saveState({
@@ -1015,8 +1089,38 @@ export function useTrackerStore() {
       created_at: new Date().toISOString(),
     };
 
+    // Auto-sync customized exercises or renamed program back to the routine template
+    let updatedRoutines = state.routines;
+    if (routineId && (customExercises || customName)) {
+      updatedRoutines = state.routines.map((r) => {
+        if (r.id !== routineId) return r;
+        const exercises = customExercises
+          ? customExercises.map((ce, idx) => ({
+              id: generateUUID(),
+              routine_id: routineId,
+              exercise_id: resolveExerciseUUID(ce.exercise_id, state.exercises),
+              order_index: idx,
+              target_sets: ce.target_sets || 3,
+              target_reps: ce.target_reps || "10",
+              target_weight_kg: ce.target_weight_kg ?? 20,
+              rest_seconds: 90,
+              notes: null,
+              created_at: new Date().toISOString(),
+            }))
+          : r.exercises;
+
+        return {
+          ...r,
+          name: customName || r.name,
+          exercises,
+          updated_at: new Date().toISOString(),
+        };
+      });
+    }
+
     saveState({
       ...state,
+      routines: updatedRoutines,
       sessions: [newSession, ...state.sessions.filter((s) => s.status !== "in_progress")],
     });
 
@@ -1143,7 +1247,49 @@ export function useTrackerStore() {
       return completedSession;
     });
 
-    saveState({ ...state, sessions: updatedSessions });
+    let updatedRoutines = state.routines;
+    if (completedSession) {
+      const sess: WorkoutSession = completedSession;
+      if (sess.routine_id) {
+        const routine = state.routines.find((r) => r.id === sess.routine_id);
+        if (routine && sess.sets && sess.sets.length > 0) {
+          const distinctExIds: string[] = [];
+          sess.sets.forEach((s) => {
+            if (!distinctExIds.includes(s.exercise_id)) distinctExIds.push(s.exercise_id);
+          });
+
+          const syncedExercises = distinctExIds.map((exId, idx) => {
+            const exSets = sess.sets!.filter((s) => s.exercise_id === exId);
+            const completedSets = exSets.filter((s) => s.is_completed);
+            const workingSets = completedSets.length > 0 ? completedSets : exSets;
+            const maxWeight = Math.max(...workingSets.map((s) => s.weight_kg), 0);
+            const avgReps = Math.round(workingSets.reduce((acc, s) => acc + s.reps, 0) / workingSets.length) || 10;
+            const existingRoutineEx = routine.exercises?.find((re) => re.exercise_id === exId);
+
+            return {
+              id: existingRoutineEx?.id || generateUUID(),
+              routine_id: routine.id,
+              exercise_id: exId,
+              order_index: idx,
+              target_sets: exSets.length,
+              target_reps: existingRoutineEx?.target_reps || `${avgReps}`,
+              target_weight_kg: maxWeight > 0 ? maxWeight : (existingRoutineEx?.target_weight_kg ?? 20),
+              rest_seconds: existingRoutineEx?.rest_seconds ?? 90,
+              notes: existingRoutineEx?.notes || null,
+              created_at: new Date().toISOString(),
+            };
+          });
+
+          updatedRoutines = state.routines.map((r) =>
+            r.id === routine.id
+              ? { ...r, exercises: syncedExercises, updated_at: new Date().toISOString() }
+              : r
+          );
+        }
+      }
+    }
+
+    saveState({ ...state, sessions: updatedSessions, routines: updatedRoutines });
 
     if (authUser && completedSession) {
       const sess: WorkoutSession = completedSession;
@@ -1245,7 +1391,9 @@ export function useTrackerStore() {
     addWeightLog,
     addMeasurementLog,
     addRoutine,
+    updateRoutine,
     deleteRoutine,
+    getLastExercisePerformance,
     startWorkout,
     updateWorkoutSet,
     addSetToSession,

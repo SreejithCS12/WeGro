@@ -40,6 +40,7 @@ interface ActiveWorkoutViewProps {
   ) => void;
   onFinishWorkout: (sessionId: string, notes?: string) => void;
   onDiscardWorkout: (sessionId: string) => void;
+  getLastExercisePerformance?: (exerciseId: string) => { summary: string; maxWeight: number; reps: number; setsCount: number } | null;
 }
 
 type MobileLayoutMode = "spotlight" | "table" | "stacked";
@@ -53,6 +54,7 @@ export function ActiveWorkoutView({
   onAddExerciseToSession,
   onFinishWorkout,
   onDiscardWorkout,
+  getLastExercisePerformance,
 }: ActiveWorkoutViewProps) {
   // Session duration timer
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -413,6 +415,7 @@ export function ActiveWorkoutView({
             const exerciseSets = sets.filter((s) => s.exercise_id === exId);
             const completedCount = exerciseSets.filter((s) => s.is_completed).length;
             const firstUncompletedId = exerciseSets.find((s) => !s.is_completed)?.id;
+            const prevPerformance = getLastExercisePerformance ? getLastExercisePerformance(exId) : null;
 
             return (
               <div
@@ -439,6 +442,11 @@ export function ActiveWorkoutView({
                         <span className="text-emerald-400 font-medium">
                           {completedCount}/{exerciseSets.length} Sets Completed
                         </span>
+                        {prevPerformance && (
+                          <span className="text-emerald-400/90 font-mono text-[10px] block mt-0.5">
+                            🕒 Prev: {prevPerformance.summary}
+                          </span>
+                        )}
                       </p>
                     </div>
                   </div>

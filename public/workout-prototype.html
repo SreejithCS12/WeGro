@@ -1,0 +1,1189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Workout Flow Prototype</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    /* Custom scrollbars */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #141417; }
+    ::-webkit-scrollbar-thumb { background: #27272a; border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
+    @keyframes pulseSubtle { 0%, 100% { opacity: 1; } 50% { opacity: 0.85; } }
+    .animate-pulse-subtle { animation: pulseSubtle 3s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+  </style>
+</head>
+<body class="bg-[#0e0e11] text-zinc-100 font-sans antialiased min-h-screen p-3 sm:p-6 pb-28">
+
+  <!-- TOP APP BAR / BRAND HEADER -->
+  <header class="max-w-3xl mx-auto mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-800 pb-4">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-violet-600 to-purple-500 flex items-center justify-center shadow-lg shadow-violet-600/30">
+        <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3 6h18M3 18h18M7 6v12M17 6v12M11 10h2M11 14h2" />
+        </svg>
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <h1 class="text-lg font-black text-white tracking-tight">Interactive Workout Prototype</h1>
+          <span id="cycle-badge" class="px-2 py-0.5 rounded-full text-[11px] font-extrabold bg-violet-500/20 text-violet-300 border border-violet-500/30">
+            Cycle 1: Initial Week
+          </span>
+        </div>
+        <p class="text-xs text-zinc-400">Rename Programs · Customize Exercises Inside · 7-Day Plan · History</p>
+      </div>
+    </div>
+
+    <!-- SIMULATE NEXT CYCLE BUTTON -->
+    <button id="btn-next-cycle" onclick="simulateNextCycle()" class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold shadow-md shadow-emerald-600/20 flex items-center gap-2 transition active:scale-95">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+      </svg>
+      <span>Simulate Next Cycle (Next Mon)</span>
+    </button>
+  </header>
+
+  <!-- TOAST NOTIFICATION -->
+  <div id="toast" class="fixed top-5 right-5 z-50 bg-emerald-600 text-white px-4 py-2.5 rounded-2xl shadow-2xl text-xs font-bold transition-all duration-300 opacity-0 pointer-events-none translate-y-[-10px] flex items-center gap-2">
+    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+    <span id="toast-message">Program renamed successfully!</span>
+  </div>
+
+  <!-- MAIN CONTAINER -->
+  <main class="max-w-3xl mx-auto space-y-6">
+
+    <!-- ===================================================================== -->
+    <!-- 1. 7-DAY WEEKLY TRAINING SPLIT SCHEDULE (MON - SUN)                  -->
+    <!-- ===================================================================== -->
+    <section class="bg-[#141417] border border-[#27272a] rounded-3xl p-4 sm:p-5 shadow-lg space-y-3.5">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <svg class="w-4 h-4 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+            <line x1="16" y1="2" x2="16" y2="6"/>
+            <line x1="8" y1="2" x2="8" y2="6"/>
+            <line x1="3" y1="10" x2="21" y2="10"/>
+          </svg>
+          <h3 class="text-xs sm:text-sm font-bold uppercase tracking-wider text-zinc-200">
+            7-Day Weekly Training Split (Mon – Sun)
+          </h3>
+        </div>
+
+        <!-- Customize Weekly Plan CTA -->
+        <button onclick="openWeeklyModal()" class="px-3 py-1.5 rounded-xl bg-violet-600/20 hover:bg-violet-600/30 border border-violet-500/40 text-violet-300 text-xs font-bold flex items-center gap-1.5 transition active:scale-95 shadow-sm">
+          <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+          <span>Customize Weekly Plan</span>
+        </button>
+      </div>
+
+      <p class="text-xs text-zinc-400">
+        Your recurring weekly routine. <strong>Tap any day card</strong> below to view, rename, or customize the exercises inside that program!
+      </p>
+
+      <!-- 7-Day Horizontal Strip -->
+      <div id="weekly-strip" class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 pt-1">
+        <!-- Rendered by JS -->
+      </div>
+    </section>
+
+
+    <!-- ===================================================================== -->
+    <!-- 2. PROGRAM & EXERCISE CUSTOMIZER (EDIT WORKOUTS INSIDE / RENAME)      -->
+    <!-- ===================================================================== -->
+    <section id="section-staging" class="bg-gradient-to-b from-[#181820] to-[#131316] border-2 border-violet-500/50 rounded-3xl p-4 sm:p-5 shadow-2xl space-y-4">
+      
+      <!-- Top Header & Day Status -->
+      <div class="flex flex-col gap-3 border-b border-zinc-800 pb-3">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span class="text-[11px] font-extrabold uppercase tracking-wider text-emerald-400">Selected Day Routine</span>
+            <span id="label-active-day" class="px-2 py-0.5 rounded-md bg-zinc-800 text-zinc-300 font-bold text-xs">Monday</span>
+          </div>
+
+          <!-- Mode Toggle: Workout Day vs Rest Day -->
+          <div class="flex items-center bg-[#101014] p-1 rounded-xl border border-zinc-800">
+            <button id="toggle-workout-day" onclick="setRestDayMode(false)" class="px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 bg-violet-600 text-white shadow-sm">
+              <span>💪 Workout Day</span>
+            </button>
+            <button id="toggle-rest-day" onclick="setRestDayMode(true)" class="px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 text-zinc-400 hover:text-white">
+              <span>🛋️ Rest Day</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- PROGRAM TITLE WITH INLINE RENAME BUTTON (ADDRESSING QUESTION 2) -->
+        <div class="flex items-center justify-between gap-2 pt-1">
+          <!-- Display Title Mode -->
+          <div id="title-display-box" class="flex items-center gap-2.5 flex-1 min-w-0">
+            <h2 id="heading-routine-title" class="text-base sm:text-xl font-black text-white truncate">
+              Chest & Triceps (Hypertrophy)
+            </h2>
+            <button onclick="enableTitleEditing()" class="px-2 py-1 rounded-lg bg-zinc-800/80 hover:bg-zinc-700 text-violet-300 text-xs font-bold border border-zinc-700/80 flex items-center gap-1 transition shrink-0 active:scale-95" title="Rename this workout program">
+              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+              <span>Rename</span>
+            </button>
+          </div>
+
+          <!-- Edit Title Input Mode (Hidden by default) -->
+          <div id="title-edit-box" class="hidden items-center gap-2 flex-1">
+            <input type="text" id="input-rename-program" class="flex-1 px-3 py-1.5 rounded-xl bg-zinc-900 border border-violet-500 text-white text-sm font-bold focus:outline-none" placeholder="Enter program name...">
+            <button onclick="saveProgramName()" class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md transition active:scale-95">Save</button>
+            <button onclick="cancelTitleEditing()" class="px-2.5 py-1.5 rounded-xl bg-zinc-800 text-zinc-400 hover:text-white text-xs font-bold">Cancel</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- REST DAY VIEW -->
+      <div id="rest-day-view" class="hidden p-6 text-center space-y-3 bg-[#111114] rounded-2xl border border-zinc-800/80">
+        <div class="text-4xl">🛋️</div>
+        <h3 class="text-sm font-bold text-emerald-400">Marked as Rest Day (Active Recovery)</h3>
+        <p class="text-xs text-zinc-400 max-w-md mx-auto">
+          Muscles rebuild, recover, and grow stronger during rest. Focus on hydration, stretching, and recovery.
+        </p>
+        <button onclick="setRestDayMode(false)" class="px-4 py-2 rounded-xl bg-violet-600 text-white text-xs font-bold hover:bg-violet-500 transition shadow-lg shadow-violet-600/30">
+          Switch to Workout Day
+        </button>
+      </div>
+
+      <!-- WORKOUT DAY VIEW -->
+      <div id="workout-day-view" class="space-y-4">
+        
+        <!-- Split Selector Dropdown & Routine Info -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 bg-[#121216] p-3 rounded-2xl border border-zinc-800">
+          <div>
+            <span class="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Change Split for this Day</span>
+            <p class="text-xs text-zinc-300">Assign a different routine split or keep current</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <select id="select-routine" onchange="handleRoutineChange(this.value)" class="px-3 py-2 rounded-xl bg-zinc-900 border border-violet-500/40 text-xs font-bold text-violet-300 focus:outline-none cursor-pointer">
+              <!-- Populated dynamically -->
+            </select>
+            <button onclick="openCreateSplitModal()" class="px-2.5 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-bold border border-zinc-700 shrink-0" title="Create a brand new split">
+              + New Split
+            </button>
+          </div>
+        </div>
+
+        <!-- Exercise Customizer Header (ADDRESSING QUESTION 1) -->
+        <div class="flex items-center justify-between pt-1">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-bold uppercase tracking-wider text-zinc-300">
+                Exercises Inside Program (<span id="exercise-count">4</span>)
+              </span>
+              <span class="px-2 py-0.2 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold">
+                Fully Customizable
+              </span>
+            </div>
+            <p class="text-[11px] text-zinc-400">
+              Add movements, delete exercises, adjust sets & weights. Every change saves to this routine plan!
+            </p>
+          </div>
+
+          <button onclick="openAddExerciseModal()" class="px-3 py-1.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold flex items-center gap-1.5 transition active:scale-95 shadow-md shadow-violet-600/30">
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+            <span>+ Add Exercise</span>
+          </button>
+        </div>
+
+        <!-- STAGED EXERCISE LIST CONTAINER -->
+        <div id="staged-exercises-list" class="space-y-2.5">
+          <!-- Populated by JavaScript with steppers & 'Last Time' badges -->
+        </div>
+
+        <!-- SAVE PROGRAM CHANGES CTA -->
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-3 bg-[#121217] p-3 rounded-2xl border border-zinc-800">
+          <div class="flex items-center gap-2">
+            <svg class="w-4 h-4 text-emerald-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+            <span class="text-xs text-zinc-300 font-medium">
+              Exercises, order, sets & weights are automatically updated in your <strong id="label-program-target" class="text-violet-300">Chest & Triceps</strong> program plan.
+            </span>
+          </div>
+          <button onclick="showToast('Program plan updated for all upcoming cycles!')" class="px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-bold border border-zinc-700 shrink-0 active:scale-95">
+            Save Plan
+          </button>
+        </div>
+
+        <!-- START WORKOUT BUTTON -->
+        <button onclick="startWorkoutSession()" class="w-full py-3.5 rounded-2xl bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 text-white font-black text-sm uppercase tracking-wider shadow-xl shadow-violet-600/30 flex items-center justify-center gap-2 transition active:scale-98">
+          <svg class="w-4 h-4 fill-white" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          <span>Start Workout with These Exercises ▶</span>
+        </button>
+      </div>
+    </section>
+
+
+    <!-- ===================================================================== -->
+    <!-- 3. ACTIVE WORKOUT SESSION (SHOWN WHEN WORKOUT STARTED)                -->
+    <!-- ===================================================================== -->
+    <section id="section-active" class="hidden bg-[#141417] border border-violet-500/50 rounded-3xl p-4 sm:p-5 shadow-2xl space-y-4">
+      <!-- Active Session Status Bar -->
+      <div class="flex items-center justify-between border-b border-zinc-800 pb-3">
+        <div class="flex items-center gap-2.5">
+          <span class="w-3 h-3 rounded-full bg-violet-500 animate-ping"></span>
+          <div>
+            <h2 id="active-session-title" class="text-sm sm:text-base font-black text-white">Chest & Triceps Session</h2>
+            <div class="flex items-center gap-2 text-xs text-zinc-400 font-mono">
+              <span id="active-timer">⏱️ 00:00</span>
+              <span>•</span>
+              <span id="active-completed-sets">0 / 12 sets</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button onclick="openAddExerciseModal()" class="px-2.5 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-xs font-bold text-zinc-300 transition">
+            + Exercise
+          </button>
+          <button onclick="finishWorkoutSession()" class="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black uppercase tracking-wider shadow-md shadow-emerald-600/30 transition active:scale-95">
+            Finish Workout ✓
+          </button>
+        </div>
+      </div>
+
+      <!-- Rest Timer Banner -->
+      <div id="rest-timer-box" class="hidden bg-emerald-950/40 border border-emerald-500/50 p-2.5 rounded-xl flex items-center justify-between text-xs text-emerald-300">
+        <div class="flex items-center gap-2">
+          <span>⏳ Rest Timer:</span>
+          <span id="rest-timer-countdown" class="font-mono font-bold text-white text-sm">90s</span>
+        </div>
+        <button onclick="dismissRestTimer()" class="text-zinc-400 hover:text-white text-[11px] font-bold">Skip Rest</button>
+      </div>
+
+      <!-- Active Exercise List with Sets and Previous Weights -->
+      <div id="active-exercises-list" class="space-y-4">
+        <!-- Dynamically rendered active sets -->
+      </div>
+    </section>
+
+  </main>
+
+
+  <!-- ===================================================================== -->
+  <!-- MODAL 1: CUSTOMIZE 7-DAY WEEKLY SCHEDULE                             -->
+  <!-- ===================================================================== -->
+  <div id="modal-weekly" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-3 sm:p-4">
+    <div class="bg-[#141417] border border-[#27272a] rounded-3xl w-full max-w-lg flex flex-col shadow-2xl overflow-hidden max-h-[90vh]">
+      <div class="p-4 border-b border-[#27272a] flex items-center justify-between">
+        <div>
+          <h3 class="text-sm font-bold text-white">Customize 7-Day Weekly Workout Plan</h3>
+          <p class="text-xs text-zinc-400">Assign what workout program you do Monday through Sunday</p>
+        </div>
+        <button onclick="closeWeeklyModal()" class="p-1 rounded-full text-zinc-400 hover:text-white">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <div id="modal-weekly-days-list" class="p-4 overflow-y-auto space-y-2.5 max-h-[60vh]">
+        <!-- Days list rendered dynamically -->
+      </div>
+
+      <div class="p-3 border-t border-[#27272a] bg-[#101013] flex items-center justify-between">
+        <button onclick="openCreateSplitModal()" class="text-xs text-violet-400 font-bold hover:underline">
+          + Create New Custom Split
+        </button>
+        <button onclick="closeWeeklyModal()" class="px-4 py-2 rounded-xl bg-violet-600 text-white text-xs font-bold hover:bg-violet-500 shadow-lg shadow-violet-600/30">
+          Save & Done
+        </button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ===================================================================== -->
+  <!-- MODAL 2: ADD EXERCISE TO TODAY'S PLAN                                -->
+  <!-- ===================================================================== -->
+  <div id="modal-add-exercise" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-3 sm:p-4">
+    <div class="bg-[#141417] border border-[#27272a] rounded-3xl w-full max-w-lg flex flex-col shadow-2xl overflow-hidden max-h-[85vh]">
+      <div class="p-4 border-b border-[#27272a] flex items-center justify-between">
+        <div>
+          <h3 class="text-sm font-bold text-white">Add Exercise to <span id="add-modal-program-name" class="text-violet-300">Routine</span></h3>
+          <p class="text-xs text-zinc-400">Tap any movement to include it in this workout program</p>
+        </div>
+        <button onclick="closeAddExerciseModal()" class="p-1 rounded-full text-zinc-400 hover:text-white">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <!-- Muscle Filter Pills -->
+      <div class="p-3 border-b border-zinc-800 flex items-center gap-1.5 overflow-x-auto">
+        <button onclick="setPickerMuscle('All')" class="picker-pill px-2.5 py-1 rounded-lg text-xs font-bold bg-violet-600 text-white">All</button>
+        <button onclick="setPickerMuscle('Chest')" class="picker-pill px-2.5 py-1 rounded-lg text-xs font-bold bg-zinc-800 text-zinc-400 hover:text-white">Chest</button>
+        <button onclick="setPickerMuscle('Back')" class="picker-pill px-2.5 py-1 rounded-lg text-xs font-bold bg-zinc-800 text-zinc-400 hover:text-white">Back</button>
+        <button onclick="setPickerMuscle('Arms')" class="picker-pill px-2.5 py-1 rounded-lg text-xs font-bold bg-zinc-800 text-zinc-400 hover:text-white">Arms</button>
+        <button onclick="setPickerMuscle('Shoulders')" class="picker-pill px-2.5 py-1 rounded-lg text-xs font-bold bg-zinc-800 text-zinc-400 hover:text-white">Shoulders</button>
+        <button onclick="setPickerMuscle('Legs')" class="picker-pill px-2.5 py-1 rounded-lg text-xs font-bold bg-zinc-800 text-zinc-400 hover:text-white">Legs</button>
+      </div>
+
+      <!-- Exercise List -->
+      <div id="modal-exercise-picker-list" class="p-3 overflow-y-auto space-y-2 max-h-72">
+        <!-- Rendered by JS -->
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ===================================================================== -->
+  <!-- MODAL 3: CREATE NEW SPLIT PROGRAM MODAL                              -->
+  <!-- ===================================================================== -->
+  <div id="modal-create-split" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-3 sm:p-4">
+    <div class="bg-[#141417] border border-[#27272a] rounded-3xl w-full max-w-md flex flex-col shadow-2xl p-5 space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="text-sm font-bold text-white">Create New Workout Program</h3>
+        <button onclick="closeCreateSplitModal()" class="text-zinc-400 hover:text-white">✕</button>
+      </div>
+
+      <div class="space-y-3">
+        <div>
+          <label class="text-[11px] font-bold uppercase tracking-wider text-zinc-400 block mb-1">Program Name</label>
+          <input type="text" id="input-new-split-name" placeholder="e.g. Upper Body Power, Arm Blaster, Pull Day B" class="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-700 text-white text-xs focus:outline-none focus:border-violet-500">
+        </div>
+
+        <div>
+          <label class="text-[11px] font-bold uppercase tracking-wider text-zinc-400 block mb-1">Target Muscle Focus</label>
+          <select id="select-new-split-focus" class="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-700 text-white text-xs focus:outline-none">
+            <option value="Chest & Arms">Chest & Arms</option>
+            <option value="Back & Shoulders">Back & Shoulders</option>
+            <option value="Legs & Abs">Legs & Abs</option>
+            <option value="Full Body">Full Body</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2 pt-2">
+        <button onclick="closeCreateSplitModal()" class="flex-1 py-2 rounded-xl bg-zinc-800 text-zinc-300 text-xs font-bold">Cancel</button>
+        <button onclick="saveNewSplit()" class="flex-1 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold shadow-md shadow-violet-600/30">Create Program</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ===================================================================== -->
+  <!-- MODAL 4: WORKOUT FINISHED & ROUTINE PLAN UPDATED CONFIRMATION         -->
+  <!-- ===================================================================== -->
+  <div id="modal-finished-toast" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-[#141417] border border-emerald-500/60 rounded-3xl w-full max-w-md p-5 shadow-2xl text-center space-y-4">
+      <div class="w-14 h-14 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto text-2xl border border-emerald-500/30">
+        🏆
+      </div>
+      <div>
+        <h3 class="text-base font-black text-white">Session Completed & Routine Updated!</h3>
+        <p class="text-xs text-zinc-300 mt-1">
+          Your workout session was saved, and your <span id="toast-routine-name" class="text-violet-300 font-bold">Chest & Triceps</span> routine template has been updated with today's customized exercises and latest weights!
+        </p>
+      </div>
+
+      <div class="bg-[#18181f] p-3 rounded-2xl border border-zinc-800 text-left text-xs space-y-1.5">
+        <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-400 block">✨ Next Cycle Benefit</span>
+        <p class="text-zinc-300">
+          When Monday comes around next week, you will see this updated exercise list, and each movement will display:
+          <span class="text-violet-400 font-mono font-bold block mt-1">"Last time: 3 sets @ 80kg"</span>
+        </p>
+      </div>
+
+      <div class="flex items-center gap-2 pt-2">
+        <button onclick="closeFinishedModal()" class="flex-1 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-xs font-bold text-zinc-300">
+          Close
+        </button>
+        <button onclick="closeFinishedModal(); simulateNextCycle();" class="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-lg shadow-emerald-600/30">
+          Simulate Next Cycle ⏭️
+        </button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ===================================================================== -->
+  <!-- JAVASCRIPT STATE ENGINE & MOCK DATA                                   -->
+  <!-- ===================================================================== -->
+  <script>
+    // 1. Routine Definitions Library (Editable in place)
+    let ROUTINES_LIBRARY = [
+      {
+        id: "split-chest-tricep",
+        name: "Chest & Triceps (Hypertrophy)",
+        exercises: [
+          { id: "e1", name: "Barbell Bench Press", muscle: "Chest", sets: 3, reps: "8-10", weight: 75, lastTime: "75kg × 10 reps (3 sets)" },
+          { id: "e2", name: "Incline Dumbbell Press", muscle: "Chest", sets: 3, reps: "10-12", weight: 26, lastTime: "24kg × 12 reps (3 sets)" },
+          { id: "e3", name: "Cable Tricep Pushdown", muscle: "Arms", sets: 3, reps: "12-15", weight: 35, lastTime: "30kg × 12 reps (3 sets)" },
+          { id: "e4", name: "Skull Crushers (EZ Bar)", muscle: "Arms", sets: 3, reps: "10-12", weight: 30, lastTime: "27.5kg × 10 reps (3 sets)" },
+        ]
+      },
+      {
+        id: "split-back-bicep",
+        name: "Back & Biceps (Pull Split)",
+        exercises: [
+          { id: "e5", name: "Lat Pulldown (Wide Grip)", muscle: "Back", sets: 4, reps: "10-12", weight: 65, lastTime: "60kg × 10 reps (4 sets)" },
+          { id: "e6", name: "Barbell Bent Over Row", muscle: "Back", sets: 3, reps: "8-10", weight: 70, lastTime: "65kg × 8 reps (3 sets)" },
+          { id: "e7", name: "Barbell Bicep Curl", muscle: "Arms", sets: 3, reps: "10-12", weight: 30, lastTime: "25kg × 10 reps (3 sets)" },
+          { id: "e8", name: "Hammer Curls", muscle: "Arms", sets: 3, reps: "12-15", weight: 14, lastTime: "12kg × 12 reps (3 sets)" },
+        ]
+      },
+      {
+        id: "split-shoulders-abs",
+        name: "Shoulders & Abs (Delts Focus)",
+        exercises: [
+          { id: "e9", name: "Overhead Barbell Press", muscle: "Shoulders", sets: 3, reps: "8-10", weight: 50, lastTime: "45kg × 8 reps (3 sets)" },
+          { id: "e10", name: "Dumbbell Lateral Raise", muscle: "Shoulders", sets: 4, reps: "12-15", weight: 12, lastTime: "10kg × 15 reps (4 sets)" },
+          { id: "e11", name: "Hanging Leg Raises", muscle: "Core", sets: 3, reps: "15", weight: 0, lastTime: "Bodyweight × 15" }
+        ]
+      },
+      {
+        id: "split-legs-calves",
+        name: "Legs & Calves (Lower Overload)",
+        exercises: [
+          { id: "e12", name: "Barbell Back Squat", muscle: "Legs", sets: 4, reps: "6-8", weight: 100, lastTime: "95kg × 8 reps (4 sets)" },
+          { id: "e13", name: "Romanian Deadlift", muscle: "Legs", sets: 3, reps: "8-10", weight: 85, lastTime: "80kg × 8 reps (3 sets)" },
+          { id: "e14", name: "Leg Press", muscle: "Legs", sets: 3, reps: "10-12", weight: 180, lastTime: "160kg × 12 reps (3 sets)" }
+        ]
+      },
+      {
+        id: "split-push",
+        name: "Push Day (Classic PPL)",
+        exercises: [
+          { id: "e1", name: "Barbell Bench Press", muscle: "Chest", sets: 4, reps: "8-10", weight: 80, lastTime: "75kg × 8 reps" },
+          { id: "e9", name: "Overhead Barbell Press", muscle: "Shoulders", sets: 3, reps: "8-10", weight: 50, lastTime: "45kg × 8 reps" }
+        ]
+      }
+    ];
+
+    // Exercise Library for Picker
+    const ALL_EXERCISES = [
+      { id: "p1", name: "Incline Chest Cable Flyes", muscle: "Chest", equipment: "Cable" },
+      { id: "p2", name: "Dips (Chest / Triceps)", muscle: "Chest", equipment: "Bodyweight / Belt" },
+      { id: "p3", name: "Tricep Rope Overhead Extension", muscle: "Arms", equipment: "Cable" },
+      { id: "p4", name: "Close Grip Bench Press", muscle: "Arms", equipment: "Barbell" },
+      { id: "p5", name: "Seated Cable Row", muscle: "Back", equipment: "Cable" },
+      { id: "p6", name: "Preacher Curl", muscle: "Arms", equipment: "Machine" },
+      { id: "p7", name: "Standing Calf Raises", muscle: "Legs", equipment: "Machine" },
+      { id: "p8", name: "Face Pulls", muscle: "Shoulders", equipment: "Cable" },
+      { id: "p9", name: "Pec Deck Machine Flyes", muscle: "Chest", equipment: "Machine" },
+      { id: "p10", name: "Incline Dumbbell Curl", muscle: "Arms", equipment: "Dumbbell" },
+    ];
+
+    // Days Config (Mon to Sun)
+    const DAYS_CONFIG = [
+      { dayIndex: 1, name: "Monday", short: "MON" },
+      { dayIndex: 2, name: "Tuesday", short: "TUE" },
+      { dayIndex: 3, name: "Wednesday", short: "WED" },
+      { dayIndex: 4, name: "Thursday", short: "THU" },
+      { dayIndex: 5, name: "Friday", short: "FRI" },
+      { dayIndex: 6, name: "Saturday", short: "SAT" },
+      { dayIndex: 0, name: "Sunday", short: "SUN" },
+    ];
+
+    // App State
+    let state = {
+      cycle: 1,
+      selectedDayIndex: 1, // Monday
+      isRestDay: false,
+      weeklySchedule: {
+        1: "split-chest-tricep",
+        2: "split-back-bicep",
+        3: null, // Rest Day
+        4: "split-shoulders-abs",
+        5: "split-legs-calves",
+        6: "split-push",
+        0: null  // Rest Day
+      },
+      currentRoutineId: "split-chest-tricep",
+      stagedExercises: [],
+      activeSession: null,
+      activeTimerInterval: null,
+      activeSeconds: 0,
+      restTimerInterval: null,
+      pickerMuscle: "All"
+    };
+
+    function clone(obj) { return JSON.parse(JSON.stringify(obj)); }
+
+    function showToast(msg) {
+      const toast = document.getElementById("toast");
+      document.getElementById("toast-message").textContent = msg;
+      toast.classList.remove("opacity-0", "translate-y-[-10px]", "pointer-events-none");
+      toast.classList.add("opacity-100", "translate-y-0");
+      setTimeout(() => {
+        toast.classList.add("opacity-0", "translate-y-[-10px]", "pointer-events-none");
+        toast.classList.remove("opacity-100", "translate-y-0");
+      }, 2600);
+    }
+
+    // Init App
+    function init() {
+      loadRoutineForToday(state.currentRoutineId);
+      renderWeeklyStrip();
+      populateRoutineDropdown();
+    }
+
+    // Populate split dropdown
+    function populateRoutineDropdown() {
+      const select = document.getElementById("select-routine");
+      select.innerHTML = "";
+      ROUTINES_LIBRARY.forEach(r => {
+        const opt = document.createElement("option");
+        opt.value = r.id;
+        opt.textContent = r.name;
+        if (r.id === state.currentRoutineId) opt.selected = true;
+        select.appendChild(opt);
+      });
+      const restOpt = document.createElement("option");
+      restOpt.value = "rest";
+      restOpt.textContent = "🛋️ Rest Day";
+      select.appendChild(restOpt);
+    }
+
+    // Load routine into staged exercises
+    function loadRoutineForToday(routineId) {
+      if (!routineId || routineId === "rest") {
+        setRestDayMode(true);
+        return;
+      }
+      setRestDayMode(false);
+      state.currentRoutineId = routineId;
+      const found = ROUTINES_LIBRARY.find(r => r.id === routineId);
+      if (found) {
+        state.stagedExercises = clone(found.exercises);
+        document.getElementById("heading-routine-title").textContent = found.name;
+        document.getElementById("label-program-target").textContent = found.name;
+        document.getElementById("add-modal-program-name").textContent = found.name;
+      }
+      renderStagedExercises();
+    }
+
+    // Switch Rest Day Mode
+    function setRestDayMode(isRest) {
+      state.isRestDay = isRest;
+      const workoutView = document.getElementById("workout-day-view");
+      const restView = document.getElementById("rest-day-view");
+      const toggleWorkout = document.getElementById("toggle-workout-day");
+      const toggleRest = document.getElementById("toggle-rest-day");
+
+      if (isRest) {
+        workoutView.classList.add("hidden");
+        restView.classList.remove("hidden");
+        toggleWorkout.className = "px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 text-zinc-400 hover:text-white";
+        toggleRest.className = "px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 bg-emerald-600 text-white shadow-sm";
+        document.getElementById("heading-routine-title").textContent = "Active Recovery (Rest Day)";
+      } else {
+        workoutView.classList.remove("hidden");
+        restView.classList.add("hidden");
+        toggleWorkout.className = "px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 bg-violet-600 text-white shadow-sm";
+        toggleRest.className = "px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 text-zinc-400 hover:text-white";
+        const found = ROUTINES_LIBRARY.find(r => r.id === state.currentRoutineId);
+        if (found) {
+          document.getElementById("heading-routine-title").textContent = found.name;
+          document.getElementById("label-program-target").textContent = found.name;
+        }
+      }
+    }
+
+    // Routine Dropdown change
+    function handleRoutineChange(routineId) {
+      if (routineId === "rest") {
+        setRestDayMode(true);
+      } else {
+        loadRoutineForToday(routineId);
+      }
+    }
+
+    // =========================================================================
+    // RENAMING LOGIC (ADDRESSING QUESTION 2)
+    // =========================================================================
+    function enableTitleEditing() {
+      const routine = ROUTINES_LIBRARY.find(r => r.id === state.currentRoutineId);
+      if (!routine) return;
+      document.getElementById("title-display-box").classList.add("hidden");
+      const editBox = document.getElementById("title-edit-box");
+      editBox.classList.remove("hidden");
+      editBox.classList.add("flex");
+      const input = document.getElementById("input-rename-program");
+      input.value = routine.name;
+      input.focus();
+    }
+
+    function cancelTitleEditing() {
+      document.getElementById("title-edit-box").classList.add("hidden");
+      document.getElementById("title-edit-box").classList.remove("flex");
+      document.getElementById("title-display-box").classList.remove("hidden");
+    }
+
+    function saveProgramName() {
+      const newName = document.getElementById("input-rename-program").value.trim();
+      if (!newName) {
+        alert("Please enter a valid program name.");
+        return;
+      }
+
+      // Update routine in library
+      const routine = ROUTINES_LIBRARY.find(r => r.id === state.currentRoutineId);
+      if (routine) {
+        routine.name = newName;
+        document.getElementById("heading-routine-title").textContent = newName;
+        document.getElementById("label-program-target").textContent = newName;
+        document.getElementById("add-modal-program-name").textContent = newName;
+      }
+
+      // Refresh UI everywhere (Weekly strip + dropdown)
+      renderWeeklyStrip();
+      populateRoutineDropdown();
+      cancelTitleEditing();
+      showToast(`Program renamed to "${newName}"!`);
+    }
+
+    // =========================================================================
+    // EXERCISE CUSTOMIZATION (ADDRESSING QUESTION 1)
+    // =========================================================================
+    function renderStagedExercises() {
+      const list = document.getElementById("staged-exercises-list");
+      document.getElementById("exercise-count").textContent = state.stagedExercises.length;
+      list.innerHTML = "";
+
+      if (state.stagedExercises.length === 0) {
+        list.innerHTML = `<div class="p-6 text-center text-xs text-zinc-500 bg-[#141417] rounded-2xl border border-dashed border-zinc-800">No exercises staged. Tap '+ Add Exercise' to add movements!</div>`;
+        return;
+      }
+
+      state.stagedExercises.forEach((ex, idx) => {
+        const card = document.createElement("div");
+        card.className = "p-3 rounded-2xl bg-[#141418] border border-zinc-800/90 hover:border-violet-500/40 transition space-y-2.5 shadow-sm";
+
+        card.innerHTML = `
+          <div class="flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2 min-w-0">
+              <span class="w-6 h-6 rounded-lg bg-violet-600/20 text-violet-400 font-extrabold text-xs flex items-center justify-center shrink-0">${idx + 1}</span>
+              <div class="min-w-0">
+                <div class="flex items-center gap-2">
+                  <h4 class="text-xs sm:text-sm font-bold text-white truncate">${ex.name}</h4>
+                  <span class="text-[10px] px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400 font-semibold">${ex.muscle}</span>
+                </div>
+                <!-- 'Last Time' History badge -->
+                <div class="flex items-center gap-1 text-[11px] text-emerald-400 font-medium mt-0.5">
+                  <svg class="w-3 h-3 text-emerald-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                  <span>Last: ${ex.lastTime || "New exercise"}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Controls: Up, Down, Delete -->
+            <div class="flex items-center gap-1 shrink-0">
+              <button onclick="moveExercise(${idx}, -1)" ${idx === 0 ? "disabled" : ""} class="w-6 h-6 rounded-lg bg-zinc-900 disabled:opacity-20 text-zinc-300 flex items-center justify-center text-xs font-bold hover:bg-zinc-800">↑</button>
+              <button onclick="moveExercise(${idx}, 1)" ${idx === state.stagedExercises.length - 1 ? "disabled" : ""} class="w-6 h-6 rounded-lg bg-zinc-900 disabled:opacity-20 text-zinc-300 flex items-center justify-center text-xs font-bold hover:bg-zinc-800">↓</button>
+              <button onclick="deleteExercise(${idx})" class="w-6 h-6 rounded-lg bg-zinc-900 text-zinc-500 hover:text-rose-400 hover:bg-rose-950/40 flex items-center justify-center ml-1" title="Remove exercise from this program">
+                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Inline Steppers: Sets, Weight, Reps -->
+          <div class="grid grid-cols-3 gap-2 pt-1 border-t border-zinc-800/80">
+            <!-- Sets Stepper -->
+            <div class="bg-[#101013] p-1.5 rounded-xl border border-zinc-800 flex flex-col items-center">
+              <span class="text-[9px] uppercase font-bold text-zinc-400">Target Sets</span>
+              <div class="flex items-center gap-1.5 mt-0.5">
+                <button onclick="adjustSets(${idx}, -1)" class="w-6 h-6 rounded bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-xs">-</button>
+                <span class="text-xs font-black text-white font-mono min-w-[16px] text-center">${ex.sets}</span>
+                <button onclick="adjustSets(${idx}, 1)" class="w-6 h-6 rounded bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-xs">+</button>
+              </div>
+            </div>
+
+            <!-- Weight Stepper -->
+            <div class="bg-[#101013] p-1.5 rounded-xl border border-zinc-800 flex flex-col items-center">
+              <span class="text-[9px] uppercase font-bold text-zinc-400">Weight (kg)</span>
+              <div class="flex items-center gap-1 mt-0.5">
+                <button onclick="adjustWeight(${idx}, -2.5)" class="px-1.5 h-6 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold text-[10px]">-2.5</button>
+                <span class="text-xs font-black text-violet-300 font-mono min-w-[32px] text-center">${ex.weight}kg</span>
+                <button onclick="adjustWeight(${idx}, 2.5)" class="px-1.5 h-6 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold text-[10px]">+2.5</button>
+              </div>
+            </div>
+
+            <!-- Reps Quick Pill -->
+            <div class="bg-[#101013] p-1.5 rounded-xl border border-zinc-800 flex flex-col items-center">
+              <span class="text-[9px] uppercase font-bold text-zinc-400">Target Reps</span>
+              <select onchange="adjustReps(${idx}, this.value)" class="w-full mt-0.5 bg-zinc-800 text-zinc-200 text-[11px] font-bold rounded px-1 py-0.5 text-center focus:outline-none cursor-pointer">
+                <option value="6-8" ${ex.reps === "6-8" ? "selected" : ""}>6-8</option>
+                <option value="8-10" ${ex.reps === "8-10" ? "selected" : ""}>8-10</option>
+                <option value="10-12" ${ex.reps === "10-12" ? "selected" : ""}>10-12</option>
+                <option value="12-15" ${ex.reps === "12-15" ? "selected" : ""}>12-15</option>
+              </select>
+            </div>
+          </div>
+        `;
+        list.appendChild(card);
+      });
+
+      // Auto-sync staged changes directly back to the routine plan template!
+      syncStagedToRoutineTemplate();
+    }
+
+    function syncStagedToRoutineTemplate() {
+      const routine = ROUTINES_LIBRARY.find(r => r.id === state.currentRoutineId);
+      if (routine) {
+        routine.exercises = clone(state.stagedExercises);
+      }
+    }
+
+    // Exercise manipulations
+    function adjustSets(idx, delta) {
+      state.stagedExercises[idx].sets = Math.max(1, Math.min(8, state.stagedExercises[idx].sets + delta));
+      renderStagedExercises();
+    }
+    function adjustWeight(idx, delta) {
+      state.stagedExercises[idx].weight = Math.max(0, Number((state.stagedExercises[idx].weight + delta).toFixed(1)));
+      renderStagedExercises();
+    }
+    function adjustReps(idx, reps) {
+      state.stagedExercises[idx].reps = reps;
+      renderStagedExercises();
+    }
+    function moveExercise(idx, dir) {
+      const target = idx + dir;
+      if (target < 0 || target >= state.stagedExercises.length) return;
+      const temp = state.stagedExercises[idx];
+      state.stagedExercises[idx] = state.stagedExercises[target];
+      state.stagedExercises[target] = temp;
+      renderStagedExercises();
+    }
+    function deleteExercise(idx) {
+      const removed = state.stagedExercises.splice(idx, 1);
+      renderStagedExercises();
+      showToast(`Removed "${removed[0].name}" from routine plan`);
+    }
+
+    // =========================================================================
+    // 7-DAY WEEKLY STRIP
+    // =========================================================================
+    function renderWeeklyStrip() {
+      const container = document.getElementById("weekly-strip");
+      container.innerHTML = "";
+
+      DAYS_CONFIG.forEach(d => {
+        const routineId = state.weeklySchedule[d.dayIndex];
+        const isRest = !routineId;
+        const routineObj = ROUTINES_LIBRARY.find(r => r.id === routineId);
+        const isSelected = d.dayIndex === state.selectedDayIndex;
+
+        const dayCard = document.createElement("div");
+        dayCard.className = `p-2.5 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between space-y-2 ${
+          isSelected 
+            ? "bg-violet-950/40 border-violet-500 shadow-md ring-1 ring-violet-500" 
+            : "bg-[#18181b] border-zinc-800 hover:border-zinc-700"
+        }`;
+        dayCard.onclick = () => selectDayFromStrip(d.dayIndex);
+
+        dayCard.innerHTML = `
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-black text-white">${d.short}</span>
+            ${d.dayIndex === 1 ? `<span class="px-1 py-0.2 rounded bg-violet-600 text-[9px] font-bold text-white uppercase">Today</span>` : ""}
+          </div>
+          <div>
+            <div class="text-[11px] font-bold text-zinc-200 leading-tight line-clamp-2">
+              ${isRest ? "🛋️ Rest Day" : routineObj ? routineObj.name : "Custom Split"}
+            </div>
+            <span class="text-[9px] text-zinc-500 block mt-0.5">${isRest ? "Recovery" : `${routineObj?.exercises?.length || 0} exercises`}</span>
+          </div>
+          <div class="pt-1 border-t border-zinc-800 text-[10px] text-violet-400 font-semibold flex items-center justify-between">
+            <span>${isSelected ? "Viewing & Editing" : "Tap to Edit"}</span>
+            <span>→</span>
+          </div>
+        `;
+        container.appendChild(dayCard);
+      });
+    }
+
+    function selectDayFromStrip(dayIndex) {
+      state.selectedDayIndex = dayIndex;
+      const dayObj = DAYS_CONFIG.find(d => d.dayIndex === dayIndex);
+      document.getElementById("label-active-day").textContent = dayObj ? dayObj.name : "Day";
+
+      const routineId = state.weeklySchedule[dayIndex];
+      if (routineId) {
+        setRestDayMode(false);
+        state.currentRoutineId = routineId;
+        loadRoutineForToday(routineId);
+      } else {
+        setRestDayMode(true);
+      }
+      renderWeeklyStrip();
+      populateRoutineDropdown();
+    }
+
+    // Modal 1: Weekly Schedule Customizer
+    function openWeeklyModal() {
+      const modal = document.getElementById("modal-weekly");
+      const list = document.getElementById("modal-weekly-days-list");
+      list.innerHTML = "";
+
+      DAYS_CONFIG.forEach(d => {
+        const currentRoutineId = state.weeklySchedule[d.dayIndex] || "rest";
+        const row = document.createElement("div");
+        row.className = "p-2.5 rounded-xl bg-[#18181b] border border-zinc-800 flex items-center justify-between gap-3";
+
+        let optionsHtml = "";
+        ROUTINES_LIBRARY.forEach(r => {
+          optionsHtml += `<option value="${r.id}" ${currentRoutineId === r.id ? "selected" : ""}>${r.name}</option>`;
+        });
+        optionsHtml += `<option value="rest" ${currentRoutineId === "rest" ? "selected" : ""}>🛋️ Rest Day (Active Recovery)</option>`;
+
+        row.innerHTML = `
+          <div class="flex items-center gap-2 w-24">
+            <span class="text-xs font-black text-white">${d.name}</span>
+            ${d.dayIndex === 1 ? `<span class="px-1 py-0.2 rounded bg-violet-600 text-[8px] font-bold text-white uppercase">Today</span>` : ""}
+          </div>
+          <select onchange="updateScheduleDay(${d.dayIndex}, this.value)" class="flex-1 px-2.5 py-1.5 rounded-lg bg-zinc-900 border border-zinc-700 text-xs font-bold text-violet-300 focus:outline-none">
+            ${optionsHtml}
+          </select>
+        `;
+        list.appendChild(row);
+      });
+
+      modal.classList.remove("hidden");
+      modal.classList.add("flex");
+    }
+
+    function updateScheduleDay(dayIndex, value) {
+      state.weeklySchedule[dayIndex] = value === "rest" ? null : value;
+      renderWeeklyStrip();
+      if (dayIndex === state.selectedDayIndex) {
+        loadRoutineForToday(state.weeklySchedule[dayIndex]);
+      }
+      showToast("Weekly schedule updated!");
+    }
+
+    function closeWeeklyModal() {
+      const modal = document.getElementById("modal-weekly");
+      modal.classList.add("hidden");
+      modal.classList.remove("flex");
+    }
+
+    // Modal 2: Add Exercise Picker
+    function openAddExerciseModal() {
+      const modal = document.getElementById("modal-add-exercise");
+      renderExercisePickerList();
+      modal.classList.remove("hidden");
+      modal.classList.add("flex");
+    }
+
+    function setPickerMuscle(muscle) {
+      state.pickerMuscle = muscle;
+      document.querySelectorAll(".picker-pill").forEach(p => {
+        if (p.textContent === muscle) {
+          p.className = "picker-pill px-2.5 py-1 rounded-lg text-xs font-bold bg-violet-600 text-white";
+        } else {
+          p.className = "picker-pill px-2.5 py-1 rounded-lg text-xs font-bold bg-zinc-800 text-zinc-400 hover:text-white";
+        }
+      });
+      renderExercisePickerList();
+    }
+
+    function renderExercisePickerList() {
+      const list = document.getElementById("modal-exercise-picker-list");
+      list.innerHTML = "";
+
+      const filtered = ALL_EXERCISES.filter(ex => {
+        return state.pickerMuscle === "All" || ex.muscle === state.pickerMuscle;
+      });
+
+      filtered.forEach(ex => {
+        const item = document.createElement("div");
+        item.className = "p-2.5 rounded-xl bg-[#18181b] border border-zinc-800 hover:border-violet-500/50 flex items-center justify-between cursor-pointer transition";
+        item.onclick = () => addExerciseFromPicker(ex);
+
+        item.innerHTML = `
+          <div>
+            <h4 class="text-xs font-bold text-white">${ex.name}</h4>
+            <span class="text-[10px] text-zinc-400">${ex.muscle} • ${ex.equipment}</span>
+          </div>
+          <button class="px-2.5 py-1 rounded-lg bg-violet-600/20 text-violet-300 text-xs font-bold border border-violet-500/40 hover:bg-violet-600 hover:text-white transition">
+            + Add to Routine
+          </button>
+        `;
+        list.appendChild(item);
+      });
+    }
+
+    function addExerciseFromPicker(ex) {
+      state.stagedExercises.push({
+        id: "added-" + Date.now(),
+        name: ex.name,
+        muscle: ex.muscle,
+        sets: 3,
+        reps: "10-12",
+        weight: 20,
+        lastTime: "Newly added exercise"
+      });
+      renderStagedExercises();
+      closeAddExerciseModal();
+      showToast(`Added "${ex.name}" to routine plan!`);
+    }
+
+    function closeAddExerciseModal() {
+      const modal = document.getElementById("modal-add-exercise");
+      modal.classList.add("hidden");
+      modal.classList.remove("flex");
+    }
+
+    // Modal 3: Create New Custom Split
+    function openCreateSplitModal() {
+      closeWeeklyModal();
+      const modal = document.getElementById("modal-create-split");
+      document.getElementById("input-new-split-name").value = "";
+      modal.classList.remove("hidden");
+      modal.classList.add("flex");
+    }
+
+    function closeCreateSplitModal() {
+      const modal = document.getElementById("modal-create-split");
+      modal.classList.add("hidden");
+      modal.classList.remove("flex");
+    }
+
+    function saveNewSplit() {
+      const name = document.getElementById("input-new-split-name").value.trim();
+      const focus = document.getElementById("select-new-split-focus").value;
+      if (!name) {
+        alert("Please enter a name for the new workout program.");
+        return;
+      }
+
+      const newId = "split-custom-" + Date.now();
+      const newRoutine = {
+        id: newId,
+        name: name,
+        exercises: [
+          { id: "ne1", name: "Barbell Bench Press", muscle: "Chest", sets: 3, reps: "8-10", weight: 60, lastTime: "New Routine" },
+          { id: "ne2", name: "Incline Chest Cable Flyes", muscle: "Chest", sets: 3, reps: "10-12", weight: 20, lastTime: "New Routine" },
+        ]
+      };
+
+      ROUTINES_LIBRARY.push(newRoutine);
+      populateRoutineDropdown();
+      closeCreateSplitModal();
+
+      // Switch to this new routine immediately
+      loadRoutineForToday(newId);
+      renderWeeklyStrip();
+      showToast(`Created new program "${name}"! Now add your exercises below.`);
+    }
+
+    // START WORKOUT SESSION
+    function startWorkoutSession() {
+      if (state.stagedExercises.length === 0) {
+        alert("Please add at least 1 exercise before starting.");
+        return;
+      }
+
+      // Sync back to routine template
+      syncStagedToRoutineTemplate();
+
+      // Switch to active session view
+      document.getElementById("section-staging").classList.add("hidden");
+      document.getElementById("section-active").classList.remove("hidden");
+
+      // Build active session structure
+      state.activeSession = {
+        name: document.getElementById("heading-routine-title").textContent,
+        exercises: clone(state.stagedExercises).map(ex => {
+          const setsArr = [];
+          for (let s = 1; s <= ex.sets; s++) {
+            setsArr.push({
+              setNum: s,
+              weight: ex.weight,
+              reps: parseInt(ex.reps.split("-")[0]) || 10,
+              completed: false,
+              previous: ex.lastTime || "—"
+            });
+          }
+          return { ...ex, setsList: setsArr };
+        })
+      };
+
+      document.getElementById("active-session-title").textContent = state.activeSession.name;
+
+      // Start duration timer
+      state.activeSeconds = 0;
+      clearInterval(state.activeTimerInterval);
+      state.activeTimerInterval = setInterval(() => {
+        state.activeSeconds++;
+        const mins = String(Math.floor(state.activeSeconds / 60)).padStart(2, "0");
+        const secs = String(state.activeSeconds % 60).padStart(2, "0");
+        document.getElementById("active-timer").textContent = `⏱️ ${mins}:${secs}`;
+      }, 1000);
+
+      renderActiveExercises();
+    }
+
+    // Render Active Session Exercises
+    function renderActiveExercises() {
+      const list = document.getElementById("active-exercises-list");
+      list.innerHTML = "";
+
+      let totalSets = 0;
+      let completedSets = 0;
+
+      state.activeSession.exercises.forEach((ex, exIdx) => {
+        totalSets += ex.setsList.length;
+        completedSets += ex.setsList.filter(s => s.completed).length;
+
+        const exBlock = document.createElement("div");
+        exBlock.className = "bg-[#18181c] p-3 rounded-2xl border border-zinc-800 space-y-2.5";
+
+        let setsHtml = "";
+        ex.setsList.forEach((s, sIdx) => {
+          setsHtml += `
+            <div class="flex items-center justify-between p-2 rounded-xl bg-[#121215] border border-zinc-800/80">
+              <div class="flex items-center gap-2">
+                <span class="w-6 h-6 rounded-lg bg-zinc-800 text-zinc-300 font-mono font-bold text-xs flex items-center justify-center">${s.setNum}</span>
+                <div>
+                  <div class="flex items-center gap-1.5">
+                    <span class="text-xs font-mono font-black text-violet-300">${s.weight} kg</span>
+                    <span class="text-[10px] text-zinc-400">×</span>
+                    <span class="text-xs font-mono font-bold text-zinc-200">${s.reps} reps</span>
+                  </div>
+                  <span class="text-[10px] text-emerald-400 font-medium">Prev: ${s.previous}</span>
+                </div>
+              </div>
+
+              <div class="flex items-center gap-2">
+                <button onclick="adjustActiveWeight(${exIdx}, ${sIdx}, 2.5)" class="px-2 py-1 rounded bg-zinc-800 text-[10px] font-bold text-zinc-300 hover:bg-zinc-700">+2.5kg</button>
+                <button onclick="toggleSetComplete(${exIdx}, ${sIdx})" class="w-7 h-7 rounded-lg ${s.completed ? "bg-emerald-500 text-white shadow-md shadow-emerald-500/30" : "bg-zinc-800 text-zinc-500 hover:text-white"} flex items-center justify-center transition active:scale-90">
+                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                </button>
+              </div>
+            </div>
+          `;
+        });
+
+        exBlock.innerHTML = `
+          <div class="flex items-center justify-between">
+            <div>
+              <h4 class="text-xs sm:text-sm font-bold text-white">${ex.name}</h4>
+              <span class="text-[10px] text-zinc-400">${ex.muscle} • Target: ${ex.sets} sets × ${ex.reps}</span>
+            </div>
+            <button onclick="addSetToActiveExercise(${exIdx})" class="px-2 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-[10px] font-bold">+ Set</button>
+          </div>
+          <div class="space-y-1.5">${setsHtml}</div>
+        `;
+        list.appendChild(exBlock);
+      });
+
+      document.getElementById("active-completed-sets").textContent = `${completedSets} / ${totalSets} sets`;
+    }
+
+    function toggleSetComplete(exIdx, sIdx) {
+      const set = state.activeSession.exercises[exIdx].setsList[sIdx];
+      set.completed = !set.completed;
+      renderActiveExercises();
+
+      if (set.completed) {
+        startRestTimer(90);
+      }
+    }
+
+    function adjustActiveWeight(exIdx, sIdx, delta) {
+      const set = state.activeSession.exercises[exIdx].setsList[sIdx];
+      set.weight += delta;
+      renderActiveExercises();
+    }
+
+    function addSetToActiveExercise(exIdx) {
+      const ex = state.activeSession.exercises[exIdx];
+      const lastSet = ex.setsList[ex.setsList.length - 1];
+      ex.setsList.push({
+        setNum: ex.setsList.length + 1,
+        weight: lastSet ? lastSet.weight : 20,
+        reps: lastSet ? lastSet.reps : 10,
+        completed: false,
+        previous: lastSet ? lastSet.previous : "—"
+      });
+      renderActiveExercises();
+    }
+
+    function startRestTimer(secs) {
+      clearInterval(state.restTimerInterval);
+      const box = document.getElementById("rest-timer-box");
+      const countdown = document.getElementById("rest-timer-countdown");
+      box.classList.remove("hidden");
+
+      let rem = secs;
+      countdown.textContent = `${rem}s`;
+      state.restTimerInterval = setInterval(() => {
+        rem--;
+        if (rem <= 0) {
+          clearInterval(state.restTimerInterval);
+          box.classList.add("hidden");
+        } else {
+          countdown.textContent = `${rem}s`;
+        }
+      }, 1000);
+    }
+
+    function dismissRestTimer() {
+      clearInterval(state.restTimerInterval);
+      document.getElementById("rest-timer-box").classList.add("hidden");
+    }
+
+    // FINISH WORKOUT SESSION & SYNC BACK TO ROUTINE PLAN
+    function finishWorkoutSession() {
+      clearInterval(state.activeTimerInterval);
+      clearInterval(state.restTimerInterval);
+
+      // Two-way routine plan update:
+      const routineObj = ROUTINES_LIBRARY.find(r => r.id === state.currentRoutineId);
+      if (routineObj) {
+        routineObj.exercises = state.activeSession.exercises.map(ex => {
+          const maxCompletedWeight = Math.max(...ex.setsList.map(s => s.weight));
+          const completedCount = ex.setsList.filter(s => s.completed).length || ex.setsList.length;
+          return {
+            id: ex.id,
+            name: ex.name,
+            muscle: ex.muscle,
+            sets: ex.setsList.length,
+            reps: ex.reps,
+            weight: maxCompletedWeight,
+            lastTime: `${maxCompletedWeight}kg × ${ex.setsList[0].reps} reps (${completedCount} sets)`
+          };
+        });
+      }
+
+      document.getElementById("toast-routine-name").textContent = routineObj ? routineObj.name : "Workout";
+      const toastModal = document.getElementById("modal-finished-toast");
+      toastModal.classList.remove("hidden");
+      toastModal.classList.add("flex");
+    }
+
+    function closeFinishedModal() {
+      const toastModal = document.getElementById("modal-finished-toast");
+      toastModal.classList.add("hidden");
+      toastModal.classList.remove("flex");
+
+      // Return to staging view
+      document.getElementById("section-active").classList.add("hidden");
+      document.getElementById("section-staging").classList.remove("hidden");
+
+      // Reload staged exercises from updated routine
+      loadRoutineForToday(state.currentRoutineId);
+    }
+
+    // SIMULATE NEXT CYCLE
+    function simulateNextCycle() {
+      state.cycle++;
+      document.getElementById("cycle-badge").textContent = `Cycle ${state.cycle}: Next Week (Next Mon)`;
+      document.getElementById("cycle-badge").className = "px-2 py-0.5 rounded-full text-[11px] font-extrabold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30";
+
+      // Return to Monday and reload Chest & Triceps
+      state.selectedDayIndex = 1;
+      state.currentRoutineId = "split-chest-tricep";
+      loadRoutineForToday(state.currentRoutineId);
+      renderWeeklyStrip();
+
+      alert(`🚀 Fast-forwarded to Next Monday (Cycle ${state.cycle})!\n\nNotice how:\n1. Your customized exercises from last workout are preserved!\n2. The 'Last Time' badges now display the exact weights & reps you completed!`);
+    }
+
+    // Run on load
+    window.addEventListener("DOMContentLoaded", init);
+  </script>
+</body>
+</html>

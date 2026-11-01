@@ -438,6 +438,7 @@ export default function Home() {
                 onAddSet={store.addSetToSession}
                 onDeleteSet={store.deleteSetFromSession}
                 onAddExerciseToSession={store.addExerciseToSession}
+                getLastExercisePerformance={store.getLastExercisePerformance}
                 onFinishWorkout={(sessionId, notes) => {
                   store.finishWorkout(sessionId, notes);
                   handleTabChange("dashboard");
@@ -454,6 +455,9 @@ export default function Home() {
                 recentSessions={store.state.sessions}
                 weeklySchedule={store.state.weeklySchedule}
                 onUpdateWeeklySchedule={store.updateWeeklySchedule}
+                onUpdateRoutine={store.updateRoutine}
+                onAddRoutine={store.addRoutine}
+                getLastExercisePerformance={store.getLastExercisePerformance}
                 onStartRoutine={handleStartWorkout}
                 onOpenCreateRoutine={() => setIsCreateRoutineOpen(true)}
                 onDeleteRoutine={store.deleteRoutine}
