@@ -239,6 +239,7 @@ export function AddFoodModal({
     "All",
     "Kerala Staples",
     "South Indian",
+    "Beverages",
     "Grains",
     "Bread",
     "Chicken & Meat",

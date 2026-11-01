@@ -162,5 +162,15 @@ INSERT INTO public.foods (name, category, serving_description, reference_quantit
 ('Peanut Butter (Natural)', 'Nuts', '1 tbsp (approx 16g)', 16, 'g', 95, 4.0, 3.2, 8.0, '100% roasted peanuts without added sugar or hydrogenated oils'),
 ('Almonds (Raw)', 'Nuts', '10 almonds (approx 12g)', 12, 'g', 70, 2.5, 2.5, 6.0, 'Whole raw California or Mamra almonds'),
 ('Desi Ghee (Clarified Butter)', 'Fats & Oils', '1 tsp (approx 5ml)', 5, 'ml', 45, 0.0, 0.0, 5.0, 'Pure grass-fed cow ghee'),
-('Olive Oil / Cooking Oil', 'Fats & Oils', '1 tsp (approx 5ml)', 5, 'ml', 44, 0.0, 0.0, 5.0, 'Cold-pressed extra virgin olive oil or coconut oil')
+('Olive Oil / Cooking Oil', 'Fats & Oils', '1 tsp (approx 5ml)', 5, 'ml', 44, 0.0, 0.0, 5.0, 'Cold-pressed extra virgin olive oil or coconut oil'),
+('Black Coffee (Sugar-Free)', 'Beverages', '1 cup (approx 200ml)', 200, 'ml', 5, 0.3, 0.8, 0.0, 'Zero-sugar freshly brewed black coffee or espresso'),
+('South Indian Filter Coffee (with Milk & Sugar)', 'Beverages', '1 cup / davarah (approx 150ml)', 150, 'ml', 105, 3.2, 13.0, 4.2, 'Traditional South Indian chicory-coffee decoction with boiled milk and 1 tsp sugar'),
+('Black Tea (Sugar-Free)', 'Beverages', '1 cup (approx 200ml)', 200, 'ml', 4, 0.2, 0.6, 0.0, 'Steeped black tea without milk or sugar'),
+('Kerala Sulaimani Tea (Spiced Lemon Tea)', 'Beverages', '1 glass / cup (approx 150ml)', 150, 'ml', 45, 0.3, 11.0, 0.0, 'Malabar style spiced sweet black tea brewed with cardamom, lemon, and 1 tsp sugar'),
+('Chai / Milk Tea (with 1 tsp Sugar)', 'Beverages', '1 cup (approx 150ml)', 150, 'ml', 95, 2.8, 12.0, 3.8, 'Indian tea brewed with milk and 1 tsp sugar'),
+('Green Tea (Sugar-Free)', 'Beverages', '1 cup (approx 200ml)', 200, 'ml', 2, 0.2, 0.4, 0.0, 'Antioxidant-rich steeped green tea without sweeteners'),
+('Tender Coconut Water (Elaneer / Karikku)', 'Beverages', '1 coconut (approx 250ml)', 250, 'ml', 48, 1.5, 9.0, 0.5, 'Pure natural fresh tender coconut water, high in potassium and electrolytes'),
+('Kulukki Sarbath (Kerala Shaker Lemonade)', 'Beverages', '1 glass (approx 300ml)', 300, 'ml', 85, 0.8, 20.0, 0.3, 'Shaken Kerala lemonade with crushed ice, green chili, sugar syrup, and sabja (basil seeds)'),
+('Fresh Lime Soda (Sweet & Salt)', 'Beverages', '1 glass (approx 250ml)', 250, 'ml', 60, 0.3, 15.0, 0.0, 'Club soda with freshly squeezed lime juice, light sugar syrup and rock salt'),
+('Fresh Lime Juice (Salt Only, Sugar-Free)', 'Beverages', '1 glass (approx 250ml)', 250, 'ml', 8, 0.3, 2.0, 0.0, 'Fresh lime water or soda with sea salt only, zero sugar')
 ON CONFLICT DO NOTHING;
