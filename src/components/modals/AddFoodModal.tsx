@@ -350,86 +350,87 @@ export function AddFoodModal({
         </div>
 
         {/* Mode Navigation Tabs */}
-        <div className="px-4 pt-2 pb-1 bg-[#18181b] border-b border-[#27272a] flex items-center justify-between gap-2 overflow-x-auto scrollbar-none">
-          <div className="flex items-center gap-1">
+        <div className="px-3 sm:px-4 py-2 bg-[#18181b] border-b border-[#27272a] flex items-center justify-between gap-1.5">
+          <div className="flex items-center gap-1 min-w-0">
             <button
               type="button"
               onClick={() => setActiveTab("library")}
-              className={`py-1.5 px-3 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+              className={`py-1.5 px-2.5 sm:px-3 rounded-xl text-xs font-bold transition flex items-center gap-1 shrink-0 ${
                 activeTab === "library"
                   ? "bg-violet-600 text-white shadow-md shadow-violet-600/30"
                   : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"
               }`}
             >
               <Search className="w-3.5 h-3.5" />
-              <span>Food Library</span>
+              <span>Library</span>
             </button>
 
             <button
               type="button"
               onClick={() => setActiveTab("quickAdd")}
-              className={`py-1.5 px-3 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+              className={`py-1.5 px-2.5 sm:px-3 rounded-xl text-xs font-bold transition flex items-center gap-1 shrink-0 ${
                 activeTab === "quickAdd"
                   ? "bg-amber-500 text-black shadow-md shadow-amber-500/30"
                   : "text-zinc-400 hover:text-amber-300 hover:bg-zinc-800"
               }`}
             >
               <Zap className="w-3.5 h-3.5 fill-current" />
-              <span>⚡ Quick Add</span>
+              <span>Quick</span>
             </button>
 
             <button
               type="button"
               onClick={() => setActiveTab("custom")}
-              className={`py-1.5 px-3 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+              className={`py-1.5 px-2.5 sm:px-3 rounded-xl text-xs font-bold transition flex items-center gap-1 shrink-0 ${
                 activeTab === "custom"
                   ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/30"
                   : "text-zinc-400 hover:text-emerald-300 hover:bg-zinc-800"
               }`}
             >
               <Plus className="w-3.5 h-3.5" />
-              <span>+ Custom</span>
+              <span>Custom</span>
             </button>
           </div>
 
           <button
             type="button"
             onClick={() => setIsBarcodeScannerOpen(true)}
-            className="py-1.5 px-3 rounded-xl text-xs font-bold transition flex items-center gap-1.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white shadow-md shadow-violet-600/20 active:scale-95 shrink-0"
+            className="py-1.5 px-2.5 sm:px-3 rounded-xl text-xs font-bold transition flex items-center gap-1.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white shadow-md shadow-violet-600/20 active:scale-95 shrink-0"
             title="Scan barcode on packaged food via camera"
           >
             <Barcode className="w-3.5 h-3.5" />
-            <span>Scan Barcode</span>
+            <span>Scan</span>
           </button>
         </div>
 
         {/* Meal Category Bar */}
-        <div className="px-4 py-2.5 bg-[#121215] border-b border-[#27272a]">
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider shrink-0">
+        <div className="px-3 sm:px-4 py-2 bg-[#121215] border-b border-[#27272a]">
+          <div className="flex items-center justify-between gap-1.5">
+            <span className="hidden sm:inline text-[10px] font-semibold text-zinc-400 uppercase tracking-wider shrink-0">
               Meal:
             </span>
-            <div className="grid grid-cols-4 gap-1.5 flex-1">
+            <div className="grid grid-cols-4 gap-1 sm:gap-1.5 flex-1">
               {(
                 [
-                  { id: "breakfast", label: "Breakfast", icon: "🍳" },
-                  { id: "lunch", label: "Lunch", icon: "🥗" },
-                  { id: "dinner", label: "Dinner", icon: "🍛" },
-                  { id: "snacks", label: "Snacks", icon: "🍎" },
+                  { id: "breakfast", label: "Breakfast", shortLabel: "B'fast", icon: "🍳" },
+                  { id: "lunch", label: "Lunch", shortLabel: "Lunch", icon: "🥗" },
+                  { id: "dinner", label: "Dinner", shortLabel: "Dinner", icon: "🍛" },
+                  { id: "snacks", label: "Snacks", shortLabel: "Snacks", icon: "🍎" },
                 ] as const
               ).map((m) => (
                 <button
                   key={m.id}
                   type="button"
                   onClick={() => setCategory(m.id)}
-                  className={`py-1 px-1.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1 ${
+                  className={`py-1 px-1 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1 ${
                     category === m.id
                       ? "bg-zinc-800 text-white border border-zinc-600 shadow-sm"
                       : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900"
                   }`}
                 >
-                  <span>{m.icon}</span>
-                  <span className="truncate">{m.label}</span>
+                  <span className="text-xs">{m.icon}</span>
+                  <span className="hidden xs:inline truncate text-[11px] sm:text-xs">{m.label}</span>
+                  <span className="xs:hidden truncate text-[10px]">{m.shortLabel}</span>
                 </button>
               ))}
             </div>
@@ -508,7 +509,7 @@ export function AddFoodModal({
             </div>
 
             {/* Food Results List */}
-            <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+            <div className={`space-y-1.5 overflow-y-auto pr-1 transition-all ${selectedFood ? "max-h-24 sm:max-h-32" : "max-h-48 sm:max-h-56"}`}>
               {filteredFoods.map((food, idx) => {
                 const isSelected = selectedFood?.id === food.id;
                 return (
