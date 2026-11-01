@@ -33,9 +33,13 @@ export function PWAInstallPrompt() {
       setIsDismissed(false);
     }
 
-    // Detect iOS devices
+    // Detect iOS devices (iPhone, iPad, iPod)
     const userAgent = window.navigator.userAgent.toLowerCase();
-    const isIOSDevice = /iphone|ipad|ipod/.test(userAgent);
+    const isIOSDevice =
+      /iphone|ipad|ipod/.test(userAgent) ||
+      (typeof window !== "undefined" &&
+        window.navigator.platform === "MacIntel" &&
+        window.navigator.maxTouchPoints > 1);
     setIsIOS(isIOSDevice);
 
     // Listen for Chrome / Android / Edge PWA install prompt
@@ -75,8 +79,8 @@ export function PWAInstallPrompt() {
 
   return (
     <>
-      {/* Floating In-App Install Banner (Bottom-pinned above navigation) */}
-      <div className="fixed bottom-20 left-3 right-3 sm:left-auto sm:right-6 sm:bottom-6 sm:max-w-md z-40 bg-[#141417]/95 backdrop-blur-xl border border-violet-500/40 rounded-2xl p-3.5 shadow-2xl shadow-black/80 flex items-center justify-between gap-3 animate-slide-up">
+      {/* Floating In-App Install Banner (Mobile & Tablet screens only - hidden on Desktop lg+) */}
+      <div className="fixed bottom-20 left-3 right-3 md:left-auto md:right-6 md:bottom-6 md:max-w-md z-40 bg-[#141417]/95 backdrop-blur-xl border border-violet-500/40 rounded-2xl p-3.5 shadow-2xl shadow-black/80 flex lg:hidden items-center justify-between gap-3 animate-slide-up">
         <div className="flex items-center gap-3 min-w-0">
           <WeGroLogo size="sm" />
           <div className="min-w-0">
@@ -114,14 +118,14 @@ export function PWAInstallPrompt() {
         </div>
       </div>
 
-      {/* iOS Instructions Modal (When user taps Install on iPhone) */}
+      {/* iOS Instructions Modal (When user taps Install on iPhone or iPad) */}
       {showIOSInstructions && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-3 sm:p-4 animate-fade-in">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-3 sm:p-4 animate-fade-in lg:hidden">
           <div className="bg-[#141417] border border-[#27272a] rounded-3xl w-full max-w-sm p-5 space-y-4 shadow-2xl">
             <div className="flex items-center justify-between border-b border-[#27272a] pb-3">
               <div className="flex items-center gap-2">
                 <Smartphone className="w-4 h-4 text-violet-400" />
-                <h3 className="text-sm font-bold text-white">Install on iPhone</h3>
+                <h3 className="text-sm font-bold text-white">Install on iPhone / iPad</h3>
               </div>
               <button
                 onClick={() => setShowIOSInstructions(false)}
@@ -139,7 +143,7 @@ export function PWAInstallPrompt() {
                 <div>
                   <p className="font-semibold text-white">Tap the Share icon</p>
                   <p className="text-zinc-400 mt-0.5 flex items-center gap-1">
-                    At the bottom bar of Safari, tap <Share className="w-3.5 h-3.5 text-sky-400 inline" />
+                    In Safari browser, tap <Share className="w-3.5 h-3.5 text-sky-400 inline" />
                   </p>
                 </div>
               </div>

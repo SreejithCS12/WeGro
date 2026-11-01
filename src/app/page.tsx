@@ -18,6 +18,7 @@ import { CreateRoutineModal } from "@/components/modals/CreateRoutineModal";
 import { AuthModal } from "@/components/auth/AuthModal";
 import { ShareDayModal } from "@/components/modals/ShareDayModal";
 import { PWAInstallPrompt } from "@/components/ui/PWAInstallPrompt";
+import { SplashScreen } from "@/components/ui/SplashScreen";
 import { WorkoutView } from "@/components/workout/WorkoutView";
 import { ActiveWorkoutView } from "@/components/workout/ActiveWorkoutView";
 import { NutritionView } from "@/components/nutrition/NutritionView";
@@ -45,6 +46,23 @@ export default function Home() {
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
+  // Minimalist Luxury Splash Screen Launch State
+  const [showSplash, setShowSplash] = useState(true);
+  const [isSplashFadingOut, setIsSplashFadingOut] = useState(false);
+
+  useEffect(() => {
+    if (store.isLoaded) {
+      const timer = setTimeout(() => {
+        setIsSplashFadingOut(true);
+        const unmountTimer = setTimeout(() => {
+          setShowSplash(false);
+        }, 500);
+        return () => clearTimeout(unmountTimer);
+      }, 850);
+      return () => clearTimeout(timer);
+    }
+  }, [store.isLoaded]);
+
   useEffect(() => {
     if (store.isLoaded) {
       const activeTheme = store.state.profile?.theme_color || getStoredTheme();
@@ -53,24 +71,20 @@ export default function Home() {
   }, [store.isLoaded, store.state.profile?.theme_color]);
 
   if (!store.isLoaded) {
-    return (
-      <div className="min-h-screen bg-[#09090b] flex items-center justify-center text-white">
-        <div className="flex flex-col items-center gap-3">
-          <WeGroLogo size="lg" />
-          <span className="text-xs font-medium text-zinc-400 animate-pulse">Loading WeGro...</span>
-        </div>
-      </div>
-    );
+    return <SplashScreen isFadingOut={false} />;
   }
 
   // Render Onboarding Wizard if not completed yet
   if (!store.hasCompletedOnboarding) {
     return (
-      <OnboardingWizard
-        onComplete={store.completeOnboarding}
-        initialProfile={store.state.profile}
-        initialGoal={store.state.goals[0]}
-      />
+      <>
+        {showSplash && <SplashScreen isFadingOut={isSplashFadingOut} />}
+        <OnboardingWizard
+          onComplete={store.completeOnboarding}
+          initialProfile={store.state.profile}
+          initialGoal={store.state.goals[0]}
+        />
+      </>
     );
   }
 
@@ -134,6 +148,9 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-[#09090b] text-[#f4f4f5] flex font-sans selection:bg-purple-500/30">
+      {/* Animated Minimalist Splash Overlay during launch */}
+      {showSplash && <SplashScreen isFadingOut={isSplashFadingOut} />}
+
       {/* Desktop Left Sidebar (Only visible on lg+ screens) */}
       <DesktopSidebar
         currentTab={currentTab}
