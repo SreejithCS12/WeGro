@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Settings,
   Target,
@@ -65,6 +65,12 @@ export function SettingsView({
   const [themeColor, setThemeColor] = useState<AppThemeColor>(
     profile.theme_color || getStoredTheme()
   );
+
+  useEffect(() => {
+    if (profile.theme_color) {
+      setThemeColor(profile.theme_color);
+    }
+  }, [profile.theme_color]);
 
   const [savedMessage, setSavedMessage] = useState(false);
   const [calcNotice, setCalcNotice] = useState(false);

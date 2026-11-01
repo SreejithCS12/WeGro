@@ -92,6 +92,8 @@ export default function Home() {
           onComplete={store.completeOnboarding}
           initialProfile={store.state.profile}
           initialGoal={store.state.goals[0]}
+          userEmail={store.authUser?.email}
+          onSignOut={store.signOut}
         />
       </>
     );

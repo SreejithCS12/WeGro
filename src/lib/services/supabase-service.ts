@@ -80,6 +80,26 @@ export async function signOut() {
 // PROFILE & GOALS
 // -----------------------------------------------------------------------------
 
+function decodeProfileTheme(data: any): Profile | null {
+  if (!data) return null;
+  let theme_color = data.theme_color;
+  let preferred_units = data.preferred_units || "metric";
+
+  if (preferred_units && typeof preferred_units === "string" && preferred_units.includes("|theme:")) {
+    const parts = preferred_units.split("|theme:");
+    preferred_units = parts[0] || "metric";
+    if (!theme_color) {
+      theme_color = parts[1];
+    }
+  }
+
+  return {
+    ...data,
+    preferred_units,
+    theme_color: theme_color || "purple",
+  } as Profile;
+}
+
 export async function fetchProfile(userId: string): Promise<Profile | null> {
   const supabase = createClient();
   if (!supabase) return null;
@@ -91,7 +111,7 @@ export async function fetchProfile(userId: string): Promise<Profile | null> {
     .single();
 
   if (error) return null;
-  return data as Profile;
+  return decodeProfileTheme(data);
 }
 
 export async function upsertProfile(profile: Partial<Profile> & { id: string }): Promise<Profile | null> {
@@ -109,6 +129,14 @@ export async function upsertProfile(profile: Partial<Profile> & { id: string }):
     }
   }
 
+  // Encode theme_color seamlessly into preferred_units (e.g. "metric|theme:blue")
+  // so it persists in the profiles Postgres table across all devices without schema constraints!
+  let storedUnits = profile.preferred_units || "metric";
+  const cleanUnits = typeof storedUnits === "string" ? storedUnits.split("|")[0] || "metric" : "metric";
+  if (profile.theme_color) {
+    storedUnits = `${cleanUnits}|theme:${profile.theme_color}`;
+  }
+
   const validProfile: any = {
     id: profile.id,
     updated_at: new Date().toISOString(),
@@ -120,21 +148,9 @@ export async function upsertProfile(profile: Partial<Profile> & { id: string }):
   if (profile.height_cm !== undefined) validProfile.height_cm = profile.height_cm;
   if (profile.fitness_goal !== undefined) validProfile.fitness_goal = profile.fitness_goal;
   if (profile.activity_level !== undefined) validProfile.activity_level = profile.activity_level;
-  if (profile.preferred_units !== undefined) validProfile.preferred_units = profile.preferred_units;
+  validProfile.preferred_units = storedUnits;
   if (profile.timezone !== undefined) validProfile.timezone = profile.timezone;
   if (profile.latest_weight_kg !== undefined) validProfile.latest_weight_kg = profile.latest_weight_kg;
-
-  // Attempt upsert with theme_color first; if column does not exist in profiles table, fallback without it
-  if (profile.theme_color !== undefined) {
-    const withTheme = { ...validProfile, theme_color: profile.theme_color };
-    const { data, error } = await supabase
-      .from("profiles")
-      .upsert(withTheme)
-      .select()
-      .single();
-
-    if (!error && data) return data as Profile;
-  }
 
   const { data, error } = await supabase
     .from("profiles")
@@ -146,7 +162,7 @@ export async function upsertProfile(profile: Partial<Profile> & { id: string }):
     console.error("Error saving profile to Supabase:", error);
     return null;
   }
-  return data as Profile;
+  return decodeProfileTheme(data);
 }
 
 export async function fetchFitnessGoals(userId: string): Promise<FitnessGoal[]> {

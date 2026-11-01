@@ -270,7 +270,7 @@ export function Header({
           <button
             onClick={onOpenProfile}
             className="shrink-0 flex items-center gap-2 px-2 py-1.5 rounded-lg bg-[#18181b] border border-[#27272a] hover:border-violet-500/50 hover:bg-zinc-800 transition-all text-xs text-zinc-200 cursor-pointer"
-            title={`Profile: ${userName}${authUser ? " (Cloud Synced)" : " (Guest)"}`}
+            title={`Profile: ${userName} (Cloud Synced)`}
           >
             <div className="relative w-6 h-6 rounded-full bg-violet-600/30 text-violet-400 border border-violet-500/40 flex items-center justify-center font-bold text-xs">
               {userName ? userName.charAt(0).toUpperCase() : "U"}

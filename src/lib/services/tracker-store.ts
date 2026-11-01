@@ -108,7 +108,7 @@ export const DEFAULT_WEEKLY_SCHEDULE: Record<number, string | null> = {
 };
 
 function getStorageKey(userId?: string): string {
-  return `${STORAGE_KEY_PREFIX}state_${userId || "guest"}`;
+  return `${STORAGE_KEY_PREFIX}state_${userId || "user"}`;
 }
 
 function resolveExerciseUUID(exerciseId: string, exercisesList: Exercise[]): string {
@@ -125,13 +125,13 @@ function resolveExerciseUUID(exerciseId: string, exercisesList: Exercise[]): str
 }
 
 function loadInitialState(userId?: string): TrackerState {
-  if (typeof window === "undefined") {
+  if (typeof window === "undefined" || !userId) {
     return {
-      hasCompletedOnboarding: true,
+      hasCompletedOnboarding: false,
       restDays: [],
       weeklySchedule: DEFAULT_WEEKLY_SCHEDULE,
-      profile: DEFAULT_PROFILE,
-      goals: [DEFAULT_GOAL],
+      profile: { ...DEFAULT_PROFILE, id: userId || "" },
+      goals: [{ ...DEFAULT_GOAL, user_id: userId || "" }],
       exercises: INITIAL_EXERCISES as Exercise[],
       foods: INITIAL_FOODS as Food[],
       routines: INITIAL_ROUTINES,
@@ -151,11 +151,11 @@ function loadInitialState(userId?: string): TrackerState {
     if (raw) {
       const parsed = JSON.parse(raw);
       return {
-        hasCompletedOnboarding: parsed.hasCompletedOnboarding ?? true,
+        hasCompletedOnboarding: parsed.hasCompletedOnboarding ?? false,
         restDays: Array.isArray(parsed.restDays) ? parsed.restDays : [],
         weeklySchedule: parsed.weeklySchedule || DEFAULT_WEEKLY_SCHEDULE,
-        profile: parsed.profile ? { ...DEFAULT_PROFILE, ...parsed.profile } : DEFAULT_PROFILE,
-        goals: Array.isArray(parsed.goals) && parsed.goals.length > 0 ? parsed.goals : [DEFAULT_GOAL],
+        profile: parsed.profile ? { ...DEFAULT_PROFILE, ...parsed.profile, id: userId } : { ...DEFAULT_PROFILE, id: userId },
+        goals: Array.isArray(parsed.goals) && parsed.goals.length > 0 ? parsed.goals : [{ ...DEFAULT_GOAL, user_id: userId }],
         exercises: Array.isArray(parsed.exercises) && parsed.exercises.length > 0 ? parsed.exercises : (INITIAL_EXERCISES as Exercise[]),
         foods: (() => {
           const cached = Array.isArray(parsed.foods) ? (parsed.foods as Food[]) : [];
@@ -180,9 +180,8 @@ function loadInitialState(userId?: string): TrackerState {
         })(),
         routines: Array.isArray(parsed.routines) && parsed.routines.length > 0 ? parsed.routines : INITIAL_ROUTINES,
         sessions: Array.isArray(parsed.sessions) ? parsed.sessions : [],
-        // If a user ID is known, we start clean until synced from Supabase
-        foodLogs: userId ? [] : (Array.isArray(parsed.foodLogs) ? parsed.foodLogs : []),
-        waterLogs: userId ? [] : (Array.isArray(parsed.waterLogs) ? parsed.waterLogs : []),
+        foodLogs: Array.isArray(parsed.foodLogs) ? parsed.foodLogs : [],
+        waterLogs: Array.isArray(parsed.waterLogs) ? parsed.waterLogs : [],
         weightLogs: Array.isArray(parsed.weightLogs) ? parsed.weightLogs : [],
         measurementLogs: Array.isArray(parsed.measurementLogs) ? parsed.measurementLogs : [],
       };
@@ -195,8 +194,8 @@ function loadInitialState(userId?: string): TrackerState {
     hasCompletedOnboarding: false,
     restDays: [],
     weeklySchedule: DEFAULT_WEEKLY_SCHEDULE,
-    profile: DEFAULT_PROFILE,
-    goals: [DEFAULT_GOAL],
+    profile: { ...DEFAULT_PROFILE, id: userId },
+    goals: [{ ...DEFAULT_GOAL, user_id: userId }],
     exercises: INITIAL_EXERCISES as Exercise[],
     foods: INITIAL_FOODS as Food[],
     routines: INITIAL_ROUTINES,
@@ -257,22 +256,27 @@ export function useTrackerStore() {
       // 1. Profile sync
       let profile = await fetchProfile(user.id);
       if (!profile) {
-        // User just registered: create initial profile in Supabase
+        // User just registered: initialize basic profile in Supabase
         const initialProfileData = {
           id: user.id,
           display_name: user.user_metadata?.display_name || baseState.profile.display_name || "Athlete",
-          fitness_goal: baseState.profile.fitness_goal || "maintain_weight",
-          sex: baseState.profile.sex || "male",
-          height_cm: baseState.profile.height_cm || 178,
-          latest_weight_kg: baseState.profile.latest_weight_kg || 78.5,
-          timezone: baseState.profile.timezone || "Asia/Kolkata",
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "Asia/Kolkata",
+          preferred_units: "metric",
         };
         profile = await upsertProfile(initialProfileData);
       }
 
       // 2. Goal sync
       let remoteGoals = await fetchFitnessGoals(user.id);
-      if (remoteGoals.length === 0) {
+
+      // Determine if this user has already completed onboarding
+      const isAlreadyOnboarded = Boolean(
+        user.user_metadata?.has_completed_onboarding ||
+        (profile && profile.height_cm && remoteGoals.length > 0)
+      );
+
+      // If user is already onboarded but has no goal row (rare), create fallback
+      if (isAlreadyOnboarded && remoteGoals.length === 0) {
         const currentGoal = baseState.goals[0] || DEFAULT_GOAL;
         const newGoal = await upsertFitnessGoal({
           user_id: user.id,
@@ -357,9 +361,10 @@ export function useTrackerStore() {
       // Assemble merged state: For an authenticated user, Supabase is the single source of truth.
       const mergedState: TrackerState = {
         ...baseState,
-        hasCompletedOnboarding: true,
+        hasCompletedOnboarding: isAlreadyOnboarded,
         profile: {
           ...(profile || baseState.profile),
+          display_name: profile?.display_name || user.user_metadata?.display_name || baseState.profile.display_name || "Athlete",
           latest_weight_kg: effectiveWeight,
           theme_color: effectiveTheme,
         },
@@ -411,8 +416,8 @@ export function useTrackerStore() {
         setIsLoaded(true);
         syncWithCloud(session.user, userState);
       } else {
-        const guestState = loadInitialState();
-        setState(guestState);
+        setAuthUser(null);
+        setState(loadInitialState());
         setIsLoaded(true);
         setSyncStatus("offline");
       }
@@ -422,7 +427,7 @@ export function useTrackerStore() {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event: any, session: any) => {
-      if (event === "SIGNED_IN" && session?.user) {
+      if ((event === "SIGNED_IN" || event === "TOKEN_REFRESHED") && session?.user) {
         setAuthUser(session.user);
         const userState = loadInitialState(session.user.id);
         setState(userState);
@@ -430,8 +435,7 @@ export function useTrackerStore() {
       } else if (event === "SIGNED_OUT") {
         setAuthUser(null);
         setSyncStatus("offline");
-        const freshGuest = loadInitialState();
-        setState(freshGuest);
+        setState(loadInitialState());
       }
     });
 
@@ -519,18 +523,18 @@ export function useTrackerStore() {
   const signOut = async () => {
     await supabaseSignOut();
     syncQueue.clearQueue();
+    const currentUid = authUserRef.current?.id;
     setAuthUser(null);
     setSyncStatus("offline");
     if (typeof window !== "undefined") {
       try {
-        localStorage.removeItem(getStorageKey(authUser?.id));
+        localStorage.removeItem(getStorageKey(currentUid));
         localStorage.removeItem("pft_v1_state");
       } catch (e) {
         console.error("Error clearing state on sign out:", e);
       }
     }
-    const guestState = loadInitialState();
-    setState(guestState);
+    setState(loadInitialState());
   };
 
   const refreshCloudSync = async () => {
@@ -550,8 +554,9 @@ export function useTrackerStore() {
 
     if (authUser) {
       syncQueue.enqueue("UPSERT_PROFILE", {
-        id: authUser.id,
+        ...state.profile,
         ...profileUpdates,
+        id: authUser.id,
       });
     }
   };
@@ -571,15 +576,18 @@ export function useTrackerStore() {
     }
   };
 
-  const completeOnboarding = (data: {
+  const completeOnboarding = async (data: {
     profile: Partial<Profile>;
     goal: Partial<FitnessGoal>;
     initialWeightKg: number;
   }) => {
     const today = formatDateToISO(new Date());
+    const uid = authUserRef.current?.id || state.profile.id;
+
     const updatedProfile: Profile = {
       ...state.profile,
       ...data.profile,
+      id: uid,
       latest_weight_kg: data.initialWeightKg,
       updated_at: new Date().toISOString(),
     };
@@ -588,47 +596,62 @@ export function useTrackerStore() {
     const updatedGoal: FitnessGoal = {
       ...currentGoal,
       ...data.goal,
+      user_id: uid,
       effective_from: today,
     };
 
     const initialWeightEntry: BodyWeightLog = {
       id: generateUUID(),
-      user_id: authUser ? authUser.id : state.profile.id,
+      user_id: uid,
       entry_date: today,
       weight_kg: data.initialWeightKg,
       notes: "Initial weight from onboarding",
       created_at: new Date().toISOString(),
     };
 
-    saveState({
-      ...state,
-      hasCompletedOnboarding: true,
-      profile: updatedProfile,
-      goals: [updatedGoal],
-      weightLogs: [initialWeightEntry, ...state.weightLogs.filter((w) => w.entry_date !== today)],
-    });
+    saveState(
+      {
+        ...state,
+        hasCompletedOnboarding: true,
+        profile: updatedProfile,
+        goals: [updatedGoal],
+        weightLogs: [initialWeightEntry, ...state.weightLogs.filter((w) => w.entry_date !== today)],
+      },
+      uid
+    );
 
-    if (authUser) {
-      upsertProfile({
-        id: authUser.id,
-        ...data.profile,
-        latest_weight_kg: data.initialWeightKg,
-      }).catch((e) => console.error("Error during completeOnboarding profile sync:", e));
+    if (authUserRef.current) {
+      try {
+        await upsertProfile({
+          id: authUserRef.current.id,
+          ...data.profile,
+          latest_weight_kg: data.initialWeightKg,
+        });
 
-      const onboardingGoalData = { ...updatedGoal };
-      delete (onboardingGoalData as Partial<FitnessGoal>).user_id;
-      upsertFitnessGoal({
-        ...onboardingGoalData,
-        user_id: authUser.id,
-      }).catch((e) => console.error("Error during completeOnboarding goal sync:", e));
+        const onboardingGoalData = { ...updatedGoal };
+        delete (onboardingGoalData as Partial<FitnessGoal>).user_id;
+        await upsertFitnessGoal({
+          ...onboardingGoalData,
+          user_id: authUserRef.current.id,
+        });
 
-      supabaseInsertWeightLog({
-        id: initialWeightEntry.id,
-        user_id: authUser.id,
-        entry_date: today,
-        weight_kg: data.initialWeightKg,
-        notes: "Initial weight from onboarding",
-      }).catch((e) => console.error("Error during completeOnboarding weight sync:", e));
+        await supabaseInsertWeightLog({
+          id: initialWeightEntry.id,
+          user_id: authUserRef.current.id,
+          entry_date: today,
+          weight_kg: data.initialWeightKg,
+          notes: "Initial weight from onboarding",
+        });
+
+        const supabase = createClient();
+        if (supabase) {
+          await supabase.auth.updateUser({
+            data: { has_completed_onboarding: true },
+          });
+        }
+      } catch (e) {
+        console.error("Error during completeOnboarding sync:", e);
+      }
     }
   };
 

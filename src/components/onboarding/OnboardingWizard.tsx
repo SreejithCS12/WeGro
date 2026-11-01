@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Sparkles, ArrowRight, ArrowLeft, Check, Target, User, Zap, Droplets } from "lucide-react";
+import { Sparkles, ArrowRight, ArrowLeft, Check, Target, User, Zap, Droplets, LogOut } from "lucide-react";
 import { FitnessGoalType, Profile, FitnessGoal } from "@/types/database";
 import { calculateMacroSuggestions } from "@/lib/utils/calculator";
 import { COMMON_TIMEZONES } from "@/lib/data/timezones";
@@ -15,17 +15,21 @@ interface OnboardingWizardProps {
   }) => void;
   initialProfile?: Profile;
   initialGoal?: FitnessGoal;
+  userEmail?: string;
+  onSignOut?: () => void;
 }
 
 export function OnboardingWizard({
   onComplete,
   initialProfile,
   initialGoal,
+  userEmail,
+  onSignOut,
 }: OnboardingWizardProps) {
   const [step, setStep] = useState<1 | 2 | 3>(1);
 
   // Step 1: Biometrics
-  const [displayName, setDisplayName] = useState(initialProfile?.display_name || "Sreejith");
+  const [displayName, setDisplayName] = useState(initialProfile?.display_name || "Athlete");
   const [sex, setSex] = useState<"male" | "female" | "other">(initialProfile?.sex || "male");
   const [heightCm, setHeightCm] = useState(initialProfile?.height_cm || 178);
   const [weightKg, setWeightKg] = useState(initialProfile?.latest_weight_kg || 78.5);
@@ -460,6 +464,23 @@ export function OnboardingWizard({
               </button>
             </div>
           </form>
+        )}
+
+        {/* Account indicator & Switch/Sign Out Option */}
+        {onSignOut && (
+          <div className="pt-3 border-t border-zinc-800/80 flex items-center justify-between text-[11px] text-zinc-500">
+            <span className="truncate max-w-[200px]">
+              {userEmail ? `Signed in as ${userEmail}` : "Signed in"}
+            </span>
+            <button
+              type="button"
+              onClick={onSignOut}
+              className="text-zinc-400 hover:text-red-400 flex items-center gap-1 transition-colors cursor-pointer"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span>Sign Out</span>
+            </button>
+          </div>
         )}
       </div>
     </div>
