@@ -158,13 +158,23 @@ function loadInitialState(userId?: string): TrackerState {
         foods: (() => {
           const cached = Array.isArray(parsed.foods) ? (parsed.foods as Food[]) : [];
           const existingNames = new Set(cached.map((f) => f.name.toLowerCase()));
+          const existingIds = new Set(cached.map((f) => f.id));
           const merged = [...cached];
           (INITIAL_FOODS as Food[]).forEach((f) => {
-            if (!existingNames.has(f.name.toLowerCase())) {
+            if (!existingNames.has(f.name.toLowerCase()) && !existingIds.has(f.id)) {
               merged.push(f);
             }
           });
-          return merged.length > 0 ? merged : (INITIAL_FOODS as Food[]);
+          // Ensure all IDs are strictly unique
+          const seenIds = new Set<string>();
+          const deduped: Food[] = [];
+          merged.forEach((item) => {
+            if (!seenIds.has(item.id)) {
+              seenIds.add(item.id);
+              deduped.push(item);
+            }
+          });
+          return deduped.length > 0 ? deduped : (INITIAL_FOODS as Food[]);
         })(),
         routines: Array.isArray(parsed.routines) && parsed.routines.length > 0 ? parsed.routines : INITIAL_ROUTINES,
         sessions: Array.isArray(parsed.sessions) ? parsed.sessions : [],
@@ -293,9 +303,19 @@ export function useTrackerStore() {
       // Merge foods: Supabase foods + default foods
       const mergedFoods = [...remoteFoods];
       const existingFoodNames = new Set(remoteFoods.map((f) => f.name.toLowerCase()));
+      const existingFoodIds = new Set(remoteFoods.map((f) => f.id));
       INITIAL_FOODS.forEach((ifo) => {
-        if (!existingFoodNames.has(ifo.name.toLowerCase())) {
+        if (!existingFoodNames.has(ifo.name.toLowerCase()) && !existingFoodIds.has(ifo.id)) {
           mergedFoods.push(ifo as Food);
+        }
+      });
+      // Deduplicate foods by ID to guarantee uniqueness
+      const seenFoodIds = new Set<string>();
+      const dedupedFoods: Food[] = [];
+      mergedFoods.forEach((f) => {
+        if (!seenFoodIds.has(f.id)) {
+          seenFoodIds.add(f.id);
+          dedupedFoods.push(f);
         }
       });
 
@@ -330,7 +350,7 @@ export function useTrackerStore() {
         sessions: remoteSessions,
         routines: mergedRoutines,
         exercises: mergedExercises,
-        foods: mergedFoods,
+        foods: dedupedFoods,
       };
 
       saveState(mergedState, user.id);

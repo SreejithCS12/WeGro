@@ -509,11 +509,11 @@ export function AddFoodModal({
 
             {/* Food Results List */}
             <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
-              {filteredFoods.map((food) => {
+              {filteredFoods.map((food, idx) => {
                 const isSelected = selectedFood?.id === food.id;
                 return (
                   <button
-                    key={food.id}
+                    key={`${food.id}-${idx}`}
                     type="button"
                     onClick={() => handleSelectFood(food)}
                     className={`w-full text-left p-2.5 rounded-xl border transition-all flex items-center justify-between ${
