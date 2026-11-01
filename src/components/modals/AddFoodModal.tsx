@@ -647,11 +647,14 @@ export function AddFoodModal({
                     </button>
                     <input
                       type="number"
-                      step={unitMode === "household" ? "0.5" : "5"}
-                      min="0.5"
-                      value={quantity}
-                      onChange={(e) => setQuantity(Math.max(0.5, parseFloat(e.target.value) || 0))}
-                      className="w-16 bg-[#18181b] border border-zinc-700 text-center font-bold font-mono text-white text-sm py-1 rounded-lg focus:outline-none focus:border-violet-500"
+                      step="any"
+                      min="0.1"
+                      value={quantity === 0 ? "" : quantity}
+                      onChange={(e) => {
+                        const val = parseFloat(e.target.value);
+                        setQuantity(isNaN(val) ? 0 : val);
+                      }}
+                      className="w-20 bg-[#18181b] border border-zinc-700 text-center font-bold font-mono text-white text-sm py-1 rounded-lg focus:outline-none focus:border-violet-500"
                     />
                     <button
                       type="button"
@@ -967,6 +970,7 @@ export function AddFoodModal({
                 <label className="text-[11px] text-zinc-400 mb-1 block">Calories (kcal per 100g)*</label>
                 <input
                   type="number"
+                  step="any"
                   required
                   placeholder="e.g. 200"
                   value={customCalories}
@@ -978,6 +982,7 @@ export function AddFoodModal({
                 <label className="text-[11px] text-rose-400 mb-1 block">Protein (g per 100g)</label>
                 <input
                   type="number"
+                  step="any"
                   placeholder="e.g. 15"
                   value={customProtein}
                   onChange={(e) => setCustomProtein(e.target.value)}
@@ -991,6 +996,7 @@ export function AddFoodModal({
                 <label className="text-[11px] text-amber-400 mb-1 block">Carbs (g per 100g)</label>
                 <input
                   type="number"
+                  step="any"
                   placeholder="e.g. 25"
                   value={customCarbs}
                   onChange={(e) => setCustomCarbs(e.target.value)}
@@ -1001,6 +1007,7 @@ export function AddFoodModal({
                 <label className="text-[11px] text-emerald-400 mb-1 block">Fat (g per 100g)</label>
                 <input
                   type="number"
+                  step="any"
                   placeholder="e.g. 5"
                   value={customFat}
                   onChange={(e) => setCustomFat(e.target.value)}
