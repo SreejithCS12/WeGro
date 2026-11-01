@@ -83,12 +83,16 @@ export function AuthModal({
         }
       }
     } catch (err: any) {
-      console.error("Auth error:", err);
+      console.warn("Auth request failed:", err?.message || err);
       const msg = err?.message || "Authentication failed. Please check your credentials.";
-      if (msg.includes("Invalid login credentials")) {
+      if (msg.toLowerCase().includes("invalid login credentials")) {
         setErrorMessage("Invalid email or password. Please try again.");
-      } else if (msg.includes("User already registered")) {
+      } else if (msg.toLowerCase().includes("user already registered")) {
         setErrorMessage("An account with this email already exists. Try signing in.");
+      } else if (msg.toLowerCase().includes("is invalid")) {
+        setErrorMessage("Supabase security rejects reserved/dummy emails (like test@gmail.com). Please use a valid personal or work email.");
+      } else if (msg.toLowerCase().includes("password")) {
+        setErrorMessage("Password must be at least 6 characters.");
       } else {
         setErrorMessage(msg);
       }

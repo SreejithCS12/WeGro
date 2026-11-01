@@ -15,9 +15,11 @@ import { RecordWeightModal } from "@/components/modals/RecordWeightModal";
 import { CopyMealsModal } from "@/components/modals/CopyMealsModal";
 import { CreateRoutineModal } from "@/components/modals/CreateRoutineModal";
 import { AuthModal } from "@/components/auth/AuthModal";
+import { AuthView } from "@/components/auth/AuthView";
 import { ShareDayModal } from "@/components/modals/ShareDayModal";
 import { PWAInstallPrompt } from "@/components/ui/PWAInstallPrompt";
 import { SplashScreen } from "@/components/ui/SplashScreen";
+import { LandingPage } from "@/components/landing/LandingPage";
 import { WorkoutView } from "@/components/workout/WorkoutView";
 import { ActiveWorkoutView } from "@/components/workout/ActiveWorkoutView";
 import { NutritionView } from "@/components/nutrition/NutritionView";
@@ -29,6 +31,7 @@ import { formatDateToISO, calculateActiveStreak, scrollToTop } from "@/lib/utils
 import { calculateMilestoneBadges } from "@/lib/data/badges";
 import { MealCategory } from "@/types/database";
 import { applyTheme, getStoredTheme } from "@/lib/theme";
+import { createClient } from "@/lib/supabase/client";
 
 export default function Home() {
   const store = useTrackerStore();
@@ -46,9 +49,58 @@ export default function Home() {
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
+  // Unauthenticated view state (Landing Page vs Login / Sign Up)
+  const [unauthMode, setUnauthMode] = useState<"landing" | "auth">("landing");
+  const [authTab, setAuthTab] = useState<"signin" | "signup">("signup");
+  const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
+
   // Minimalist Luxury Splash Screen Launch State
   const [showSplash, setShowSplash] = useState(true);
   const [isSplashFadingOut, setIsSplashFadingOut] = useState(false);
+
+  // Check URL parameters / hash on mount (e.g. #signin, #signup, type=recovery)
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const hash = window.location.hash || "";
+      const search = window.location.search || "";
+
+      if (hash.includes("type=recovery")) {
+        setIsPasswordRecovery(true);
+        return;
+      }
+
+      if (
+        hash.includes("auth") ||
+        hash.includes("signin") ||
+        hash.includes("signup") ||
+        search.includes("auth") ||
+        search.includes("signin") ||
+        search.includes("signup")
+      ) {
+        setUnauthMode("auth");
+        if (hash.includes("signin") || search.includes("signin")) {
+          setAuthTab("signin");
+        } else {
+          setAuthTab("signup");
+        }
+      }
+    }
+
+    const supabase = createClient();
+    if (!supabase) return;
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event: any) => {
+      if (event === "PASSWORD_RECOVERY") {
+        setIsPasswordRecovery(true);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
 
   useEffect(() => {
     if (store.isLoaded) {
@@ -83,7 +135,57 @@ export default function Home() {
     return <SplashScreen isFadingOut={false} />;
   }
 
-  // Render Onboarding Wizard if not completed yet
+  // Priority: If user clicked a password reset link, show the Create New Password view
+  if (isPasswordRecovery) {
+    return (
+      <>
+        {showSplash && <SplashScreen isFadingOut={isSplashFadingOut} />}
+        <AuthView
+          defaultTab="reset"
+          onSuccess={() => {
+            setIsPasswordRecovery(false);
+            if (typeof window !== "undefined") {
+              window.location.hash = "";
+            }
+          }}
+        />
+      </>
+    );
+  }
+
+  // 1. If not logged in, show Landing Page or Login / Sign Up screen
+  if (!store.authUser) {
+    return (
+      <>
+        {showSplash && <SplashScreen isFadingOut={isSplashFadingOut} />}
+        {unauthMode === "landing" ? (
+          <LandingPage
+            onGetStarted={() => {
+              setAuthTab("signup");
+              setUnauthMode("auth");
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
+            onSignIn={() => {
+              setAuthTab("signin");
+              setUnauthMode("auth");
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
+          />
+        ) : (
+          <AuthView
+            defaultTab={authTab}
+            onBackToLanding={() => {
+              setUnauthMode("landing");
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
+            onSuccess={() => {}}
+          />
+        )}
+      </>
+    );
+  }
+
+  // 2. If logged in, but has not completed onboarding yet, show Onboarding Wizard
   if (!store.hasCompletedOnboarding) {
     return (
       <>

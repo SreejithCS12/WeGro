@@ -70,6 +70,32 @@ export async function signInWithEmail(email: string, password: string) {
   return data;
 }
 
+export async function sendPasswordResetEmail(email: string) {
+  const supabase = createClient();
+  if (!supabase) throw new Error("Supabase is not configured.");
+
+  const redirectUrl = typeof window !== "undefined" ? window.location.origin : undefined;
+
+  const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: redirectUrl,
+  });
+
+  if (error) throw error;
+  return data;
+}
+
+export async function updateUserPassword(newPassword: string) {
+  const supabase = createClient();
+  if (!supabase) throw new Error("Supabase is not configured.");
+
+  const { data, error } = await supabase.auth.updateUser({
+    password: newPassword,
+  });
+
+  if (error) throw error;
+  return data;
+}
+
 export async function signOut() {
   const supabase = createClient();
   if (!supabase) return;
