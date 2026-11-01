@@ -1,12 +1,12 @@
 "use client";
 
-import { Plus, Trash2, ChevronDown, Utensils, Copy } from "lucide-react";
+import { Plus, Trash2, ChevronDown, Utensils, Copy, Zap } from "lucide-react";
 import { FoodLog, MealCategory } from "@/types/database";
 import { formatCalories } from "@/lib/utils";
 
 interface MealsCardProps {
   foodLogs: FoodLog[];
-  onAddFood: (category: MealCategory) => void;
+  onAddFood: (category: MealCategory, mode?: "library" | "quickAdd") => void;
   onDeleteFood: (id: string) => void;
   onOpenCopyModal?: () => void;
 }
@@ -67,13 +67,23 @@ export function MealsCard({
                   </div>
                 </div>
 
-                <button
-                  onClick={() => onAddFood(cat.id)}
-                  className="py-1 px-2.5 rounded-lg bg-zinc-800 hover:bg-violet-900/40 hover:text-violet-300 text-xs font-semibold text-zinc-300 transition-colors flex items-center gap-1 border border-[#27272a]"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Add</span>
-                </button>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={() => onAddFood(cat.id, "quickAdd")}
+                    className="py-1 px-2 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-[11px] font-bold text-amber-300 transition-colors flex items-center gap-1 border border-amber-500/25 active:scale-95"
+                    title="Quick Calorie Add"
+                  >
+                    <Zap className="w-3 h-3 fill-current" />
+                    <span>Quick</span>
+                  </button>
+                  <button
+                    onClick={() => onAddFood(cat.id, "library")}
+                    className="py-1 px-2.5 rounded-lg bg-zinc-800 hover:bg-violet-900/40 hover:text-violet-300 text-xs font-semibold text-zinc-300 transition-colors flex items-center gap-1 border border-[#27272a] active:scale-95"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Add</span>
+                  </button>
+                </div>
               </div>
 
               {/* Items List */}

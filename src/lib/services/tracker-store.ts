@@ -155,7 +155,17 @@ function loadInitialState(userId?: string): TrackerState {
         profile: parsed.profile ? { ...DEFAULT_PROFILE, ...parsed.profile } : DEFAULT_PROFILE,
         goals: Array.isArray(parsed.goals) && parsed.goals.length > 0 ? parsed.goals : [DEFAULT_GOAL],
         exercises: Array.isArray(parsed.exercises) && parsed.exercises.length > 0 ? parsed.exercises : (INITIAL_EXERCISES as Exercise[]),
-        foods: Array.isArray(parsed.foods) && parsed.foods.length > 0 ? parsed.foods : (INITIAL_FOODS as Food[]),
+        foods: (() => {
+          const cached = Array.isArray(parsed.foods) ? (parsed.foods as Food[]) : [];
+          const existingNames = new Set(cached.map((f) => f.name.toLowerCase()));
+          const merged = [...cached];
+          (INITIAL_FOODS as Food[]).forEach((f) => {
+            if (!existingNames.has(f.name.toLowerCase())) {
+              merged.push(f);
+            }
+          });
+          return merged.length > 0 ? merged : (INITIAL_FOODS as Food[]);
+        })(),
         routines: Array.isArray(parsed.routines) && parsed.routines.length > 0 ? parsed.routines : INITIAL_ROUTINES,
         sessions: Array.isArray(parsed.sessions) ? parsed.sessions : [],
         // If a user ID is known, we start clean until synced from Supabase

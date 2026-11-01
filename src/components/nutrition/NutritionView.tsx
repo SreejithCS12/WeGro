@@ -1,6 +1,6 @@
 "use client";
 
-import { PieChart, Plus } from "lucide-react";
+import { PieChart, Plus, Zap } from "lucide-react";
 import { Food, FoodLog, FitnessGoal } from "@/types/database";
 import { formatCalories } from "@/lib/utils";
 
@@ -9,12 +9,14 @@ interface NutritionViewProps {
   foodLogs: FoodLog[];
   goal: FitnessGoal;
   onOpenAddFoodModal?: () => void;
+  onOpenQuickAdd?: () => void;
 }
 
 export function NutritionView({
   foodLogs,
   goal,
   onOpenAddFoodModal,
+  onOpenQuickAdd,
 }: NutritionViewProps) {
   const totalCalories = foodLogs.reduce((acc, f) => acc + f.calories, 0);
   const totalProtein = foodLogs.reduce((acc, f) => acc + f.protein, 0);
@@ -44,10 +46,19 @@ export function NutritionView({
               Macronutrient Energy Ratio
             </h3>
           </div>
-          <div className="flex items-center gap-3">
-            <span className="text-xs font-mono font-bold text-zinc-200">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-mono font-bold text-zinc-200 mr-1">
               {formatCalories(totalCalories)} / {formatCalories(goal.calorie_target)} kcal
             </span>
+            {onOpenQuickAdd && (
+              <button
+                onClick={onOpenQuickAdd}
+                className="py-1 px-2.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 font-bold text-xs flex items-center gap-1 shadow-sm transition-all active:scale-95"
+              >
+                <Zap className="w-3.5 h-3.5 fill-current" />
+                <span>Quick Add</span>
+              </button>
+            )}
             {onOpenAddFoodModal && (
               <button
                 onClick={onOpenAddFoodModal}

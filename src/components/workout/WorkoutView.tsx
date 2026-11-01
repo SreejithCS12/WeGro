@@ -6,7 +6,6 @@ import {
   Play,
   Plus,
   Search,
-  Filter,
   Layers,
   Trash2,
   Calendar,
@@ -115,10 +114,8 @@ export function WorkoutView({
   const [pickerMuscleFilter, setPickerMuscleFilter] = useState("All");
   const [pickerSearch, setPickerSearch] = useState("");
 
-  // Filters for bottom library
+  // Filters for split routines library
   const [selectedSplitCategory, setSelectedSplitCategory] = useState<string>("All");
-  const [selectedMuscle, setSelectedMuscle] = useState<string>("All");
-  const [searchExercise, setSearchExercise] = useState("");
 
   const daysConfig = [
     { dayIndex: 1, name: "Monday", short: "MON" },
@@ -273,14 +270,6 @@ export function WorkoutView({
     return true;
   });
 
-  // Filter exercises in catalog
-  const filteredExercises = exercises.filter((ex) => {
-    const matchesMuscle = selectedMuscle === "All" || ex.muscle_group === selectedMuscle;
-    const matchesSearch =
-      ex.name.toLowerCase().includes(searchExercise.toLowerCase()) ||
-      ex.equipment.toLowerCase().includes(searchExercise.toLowerCase());
-    return matchesMuscle && matchesSearch;
-  });
 
   const completedSessions = recentSessions.filter((s) => s.status === "completed");
 
@@ -763,78 +752,6 @@ export function WorkoutView({
         </div>
       )}
 
-      {/* ========================================================================= */}
-      {/* 5. EXERCISE CATALOG EXPLORER */}
-      {/* ========================================================================= */}
-      <div className="space-y-3 pt-2">
-        <div className="flex items-center justify-between px-1">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-300">
-            Exercise Library Database ({exercises.length})
-          </h3>
-        </div>
-
-        {/* Muscle Filter Tabs */}
-        <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none no-scrollbar">
-          {["All", "Chest", "Back", "Legs", "Shoulders", "Arms", "Core"].map((muscle) => (
-            <button
-              key={muscle}
-              onClick={() => setSelectedMuscle(muscle)}
-              className={`py-1 px-3 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
-                selectedMuscle === muscle
-                  ? "bg-violet-600 text-white shadow-md shadow-violet-600/30"
-                  : "bg-[#141417] border border-[#27272a] text-zinc-400 hover:text-zinc-200"
-              }`}
-            >
-              {muscle}
-            </button>
-          ))}
-        </div>
-
-        {/* Search Input */}
-        <div className="relative">
-          <Search className="w-4 h-4 absolute left-3 top-3 text-zinc-400" />
-          <input
-            type="text"
-            placeholder="Search exercises by name or equipment..."
-            value={searchExercise}
-            onChange={(e) => setSearchExercise(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 bg-[#141417] border border-[#27272a] focus:border-violet-500 rounded-xl text-xs text-white placeholder-zinc-500 outline-none"
-          />
-        </div>
-
-        {/* Exercise Items Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-          {filteredExercises.map((ex) => (
-            <div
-              key={ex.id}
-              className="p-3 rounded-xl bg-[#141417] border border-[#27272a] hover:border-zinc-700 transition-colors space-y-1"
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-white">{ex.name}</span>
-                <span className="text-[10px] font-mono font-semibold text-violet-400 bg-violet-500/10 px-1.5 py-0.5 rounded">
-                  {ex.muscle_group}
-                </span>
-              </div>
-              <div className="text-[11px] text-zinc-400 flex items-center justify-between">
-                <span>{ex.equipment}</span>
-                <span className="text-[10px] text-zinc-500 italic">
-                  {ex.exercise_type === "bodyweight_reps" ? "Bodyweight" : "Weighted"}
-                </span>
-              </div>
-              {ex.notes && <p className="text-[10px] text-zinc-500 truncate">{ex.notes}</p>}
-            </div>
-          ))}
-
-          {filteredExercises.length === 0 && (
-            <div className="col-span-full p-8 text-center bg-[#141417] border border-[#27272a] rounded-2xl space-y-1">
-              <p className="text-xs font-semibold text-zinc-300">No exercises found</p>
-              <p className="text-[11px] text-zinc-500">
-                Try adjusting your search or muscle group filter.
-              </p>
-            </div>
-          )}
-        </div>
-      </div>
 
       {/* ========================================================================= */}
       {/* MODAL: ADD EXERCISE TO TODAY'S PLAN */}
@@ -857,13 +774,16 @@ export function WorkoutView({
 
             {/* Search & Muscle Filters */}
             <div className="p-3 border-b border-zinc-800 space-y-2">
-              <input
-                type="text"
-                placeholder="Search exercise by name or muscle..."
-                value={pickerSearch}
-                onChange={(e) => setPickerSearch(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-700 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-violet-500"
-              />
+              <div className="relative">
+                <Search className="w-4 h-4 absolute left-3 top-2.5 text-zinc-400" />
+                <input
+                  type="text"
+                  placeholder="Search exercise by name or muscle..."
+                  value={pickerSearch}
+                  onChange={(e) => setPickerSearch(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2 rounded-xl bg-zinc-900 border border-zinc-700 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-violet-500"
+                />
+              </div>
 
               <div className="flex items-center gap-1 overflow-x-auto pb-1 no-scrollbar">
                 {["All", "Chest", "Back", "Arms", "Shoulders", "Legs", "Core"].map((m) => (

@@ -35,6 +35,7 @@ export default function Home() {
   // Modals state
   const [isAddFoodOpen, setIsAddFoodOpen] = useState(false);
   const [foodModalCategory, setFoodModalCategory] = useState<MealCategory>("lunch");
+  const [foodModalMode, setFoodModalMode] = useState<"library" | "quickAdd">("library");
   const [isAddWaterOpen, setIsAddWaterOpen] = useState(false);
   const [isRecordWeightOpen, setIsRecordWeightOpen] = useState(false);
   const [isCopyMealsOpen, setIsCopyMealsOpen] = useState(false);
@@ -82,8 +83,9 @@ export default function Home() {
   const yesterdayDate = formatDateToISO(prevDateObj);
   const yesterdayFoodLogs = store.state.foodLogs.filter((f) => f.entry_date === yesterdayDate);
 
-  const handleOpenAddFood = (category: MealCategory = "lunch") => {
+  const handleOpenAddFood = (category: MealCategory = "lunch", mode: "library" | "quickAdd" = "library") => {
     setFoodModalCategory(category);
+    setFoodModalMode(mode);
     setIsAddFoodOpen(true);
   };
 
@@ -303,7 +305,8 @@ export default function Home() {
               foods={store.state.foods}
               foodLogs={dayFoodLogs}
               goal={dailyTotals.goal}
-              onOpenAddFoodModal={() => handleOpenAddFood("lunch")}
+              onOpenAddFoodModal={() => handleOpenAddFood("lunch", "library")}
+              onOpenQuickAdd={() => handleOpenAddFood("lunch", "quickAdd")}
             />
           </div>
         )}
@@ -347,6 +350,7 @@ export default function Home() {
         onClose={() => setIsAddFoodOpen(false)}
         foods={store.state.foods}
         initialCategory={foodModalCategory}
+        initialMode={foodModalMode}
         onLogFood={(data) => {
           store.addFoodLog({
             entry_date: currentDate,

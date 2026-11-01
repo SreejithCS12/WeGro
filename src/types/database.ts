@@ -129,6 +129,8 @@ export interface Food {
   fat: number;
   notes?: string | null;
   created_at: string;
+  household_unit?: string | null;
+  household_grams?: number | null;
 }
 
 export interface SavedMeal {
