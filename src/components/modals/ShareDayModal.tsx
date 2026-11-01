@@ -7,14 +7,9 @@ import {
   Download,
   Copy,
   Check,
-  Flame,
-  Dumbbell,
-  Droplets,
-  Calendar,
   Sparkles,
   Smartphone,
   Square,
-  Award,
 } from "lucide-react";
 import { FitnessGoal, WorkoutSession } from "@/types/database";
 import { formatCalories } from "@/lib/utils";
@@ -179,11 +174,25 @@ export function ShareDayModal({
     ctx.fillText("⚡ WEGRO FITNESS", width / 2, startY + 36);
     ctx.restore();
 
-    // Main Greeting / Title
+    // Main Greeting / Title (with auto-fit)
+    const recapTitle = `${userName}'s Daily Recap`;
+    const maxTitleWidth = width - 120;
+    let titleFontSize = 56;
+    ctx.font = `bold ${titleFontSize}px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif`;
+    while (titleFontSize > 34 && ctx.measureText(recapTitle).width > maxTitleWidth) {
+      titleFontSize -= 2;
+      ctx.font = `bold ${titleFontSize}px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif`;
+    }
+    let displayTitle = recapTitle;
+    if (ctx.measureText(displayTitle).width > maxTitleWidth) {
+      while (displayTitle.length > 0 && ctx.measureText(displayTitle + "…").width > maxTitleWidth) {
+        displayTitle = displayTitle.slice(0, -1).trim();
+      }
+      displayTitle += "…";
+    }
     ctx.fillStyle = "#ffffff";
-    ctx.font = "bold 56px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
     ctx.textAlign = "center";
-    ctx.fillText(`${userName}'s Daily Recap`, width / 2, startY + 125);
+    ctx.fillText(displayTitle, width / 2, startY + 125);
 
     // Subtitle Date + Streak Pill
     ctx.fillStyle = "#a1a1aa";
@@ -213,17 +222,21 @@ export function ShareDayModal({
     ctx.textAlign = "right";
     ctx.fillText(`${caloriePct}% of Goal`, cardMargin + cardWidth - 48, nutritionY + 65);
 
-    // Calories Big Stat
+    // Calories Big Stat (measured before font change to prevent overlap)
+    const caloriesConsumedText = formatCalories(dailyTotals.caloriesConsumed);
+    const caloriesTargetText = ` / ${formatCalories(calorieTarget)} kcal`;
+
     ctx.fillStyle = "#ffffff";
     ctx.font = "bold 76px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
     ctx.textAlign = "left";
-    ctx.fillText(formatCalories(dailyTotals.caloriesConsumed), cardMargin + 48, nutritionY + 160);
+    ctx.fillText(caloriesConsumedText, cardMargin + 48, nutritionY + 160);
+    const caloriesConsumedWidth = ctx.measureText(caloriesConsumedText).width;
 
     ctx.fillStyle = "#71717a";
     ctx.font = "500 32px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
     ctx.fillText(
-      ` / ${formatCalories(calorieTarget)} kcal`,
-      cardMargin + 48 + ctx.measureText(formatCalories(dailyTotals.caloriesConsumed)).width + 12,
+      caloriesTargetText,
+      cardMargin + 48 + caloriesConsumedWidth + 12,
       nutritionY + 160
     );
 
@@ -309,16 +322,31 @@ export function ShareDayModal({
     ctx.textAlign = "left";
     ctx.fillText("🏋️ Workout Session", cardMargin + 48, workoutY + 65);
 
-    // Workout Routine Name
+    // Workout Routine Name (scaled and truncated to prevent overflowing card width)
+    const maxWorkoutNameW = cardWidth - 96;
+    let workoutFontSize = 42;
+    ctx.font = `bold ${workoutFontSize}px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif`;
+    while (workoutFontSize > 28 && ctx.measureText(mainWorkoutName).width > maxWorkoutNameW) {
+      workoutFontSize -= 2;
+      ctx.font = `bold ${workoutFontSize}px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif`;
+    }
+
+    let displayWorkoutName = mainWorkoutName;
+    if (ctx.measureText(displayWorkoutName).width > maxWorkoutNameW) {
+      while (displayWorkoutName.length > 0 && ctx.measureText(displayWorkoutName + "…").width > maxWorkoutNameW) {
+        displayWorkoutName = displayWorkoutName.slice(0, -1).trim();
+      }
+      displayWorkoutName += "…";
+    }
+
     ctx.fillStyle = "#ffffff";
-    ctx.font = "bold 44px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
     ctx.textAlign = "left";
-    ctx.fillText(mainWorkoutName, cardMargin + 48, workoutY + 130);
+    ctx.fillText(displayWorkoutName, cardMargin + 48, workoutY + 130);
 
     // Workout Metric Badges
-    const wStatsY = workoutY + (isStory ? 175 : 155);
+    const wStatsY = workoutY + (isStory ? 175 : 148);
     const wStatW = (cardWidth - 96 - 32) / 3;
-    const wStatH = isStory ? 140 : 75;
+    const wStatH = isStory ? 140 : 82;
 
     const workoutStats = [
       {
@@ -350,11 +378,16 @@ export function ShareDayModal({
       ctx.fillStyle = "#a1a1aa";
       ctx.font = "500 20px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
       ctx.textAlign = "left";
-      ctx.fillText(`${st.icon} ${st.label}`, stX + 20, wStatsY + 36);
+      ctx.fillText(`${st.icon} ${st.label}`, stX + 20, wStatsY + (isStory ? 36 : 28));
 
+      let valFontSize = isStory ? 36 : 28;
+      ctx.font = `bold ${valFontSize}px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif`;
+      while (valFontSize > 20 && ctx.measureText(st.val).width > wStatW - 32) {
+        valFontSize -= 2;
+        ctx.font = `bold ${valFontSize}px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif`;
+      }
       ctx.fillStyle = "#f43f5e";
-      ctx.font = "bold 36px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
-      ctx.fillText(st.val, stX + 20, wStatsY + 82);
+      ctx.fillText(st.val, stX + 20, wStatsY + (isStory ? 82 : 64));
     });
 
     // --- 5. Hydration & Streak Bar (Story Mode only for perfect balance) ---
@@ -369,15 +402,19 @@ export function ShareDayModal({
       ctx.textAlign = "left";
       ctx.fillText("💧 Hydration & Consistency", cardMargin + 48, hydraY + 65);
 
+      const waterConsumedText = `${(dailyTotals.waterConsumed / 1000).toFixed(1)}L`;
+      const waterTargetText = ` / ${(waterTarget / 1000).toFixed(1)}L (${waterPct}%)`;
+
       ctx.fillStyle = "#38bdf8";
       ctx.font = "bold 52px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
-      ctx.fillText(`${(dailyTotals.waterConsumed / 1000).toFixed(1)}L`, cardMargin + 48, hydraY + 145);
+      ctx.fillText(waterConsumedText, cardMargin + 48, hydraY + 145);
+      const waterConsumedWidth = ctx.measureText(waterConsumedText).width;
 
       ctx.fillStyle = "#71717a";
       ctx.font = "500 28px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
       ctx.fillText(
-        ` / ${(waterTarget / 1000).toFixed(1)}L (${waterPct}%)`,
-        cardMargin + 48 + ctx.measureText(`${(dailyTotals.waterConsumed / 1000).toFixed(1)}L`).width + 12,
+        waterTargetText,
+        cardMargin + 48 + waterConsumedWidth + 12,
         hydraY + 145
       );
 
@@ -429,9 +466,18 @@ export function ShareDayModal({
   // Re-draw whenever modal opens or aspect ratio changes
   useEffect(() => {
     if (isOpen) {
-      setTimeout(() => {
+      renderCardToCanvas();
+      const timer = setTimeout(() => {
         renderCardToCanvas();
       }, 50);
+
+      if (typeof document !== "undefined" && document.fonts) {
+        document.fonts.ready.then(() => {
+          renderCardToCanvas();
+        });
+      }
+
+      return () => clearTimeout(timer);
     }
   }, [isOpen, aspectMode, renderCardToCanvas]);
 
@@ -474,8 +520,8 @@ export function ShareDayModal({
         // Fallback to downloading if Web Share API with files is not supported
         handleDownload();
       }
-    } catch (err: any) {
-      if (err?.name !== "AbortError") {
+    } catch (err: unknown) {
+      if ((err as Error)?.name !== "AbortError") {
         setShareError("Could not launch share sheet. Downloading image instead.");
         handleDownload();
       }
@@ -516,8 +562,9 @@ export function ShareDayModal({
       const blob = await getCanvasBlob();
       if (!blob) return;
 
-      if (navigator.clipboard && (window as any).ClipboardItem) {
-        const item = new (window as any).ClipboardItem({ "image/png": blob });
+      if (navigator.clipboard && "ClipboardItem" in window) {
+        const ClipboardItemConstructor = (window as unknown as { ClipboardItem: new (items: Record<string, Blob>) => ClipboardItem }).ClipboardItem;
+        const item = new ClipboardItemConstructor({ "image/png": blob });
         await navigator.clipboard.write([item]);
         setCopied(true);
         setTimeout(() => setCopied(false), 2500);
