@@ -506,28 +506,30 @@ export function WorkoutView({
       {/* 2. 7-DAY WEEKLY TRAINING SPLIT PLAN (MON-SUN) */}
       {/* ========================================================================= */}
       <div className="bg-[#141417] border border-[#27272a] rounded-3xl p-4 sm:p-5 shadow-lg space-y-3">
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="flex items-center gap-1.5 mb-0.5">
-              <CalendarDays className="w-4 h-4 text-violet-400" />
-              <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-200">
-                7-Day Weekly Training Split Plan
+        <div className="space-y-1">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <CalendarDays className="w-4 h-4 text-violet-400 shrink-0" />
+              <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-200 truncate sm:overflow-visible sm:whitespace-normal">
+                <span className="hidden sm:inline">7-Day Weekly Training Split Plan</span>
+                <span className="sm:hidden">7-Day Weekly Split</span>
               </h3>
             </div>
-            <p className="text-[11px] text-zinc-400">
-              Your weekly split schedule (swipe or tap any day to preview & customize)
-            </p>
+
+            {onOpenCreateRoutine && (
+              <button
+                onClick={onOpenCreateRoutine}
+                className="px-2.5 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-xs font-bold text-violet-300 transition flex items-center gap-1 shrink-0 whitespace-nowrap border border-zinc-700/60 active:scale-95"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>New Split</span>
+              </button>
+            )}
           </div>
 
-          {onOpenCreateRoutine && (
-            <button
-              onClick={onOpenCreateRoutine}
-              className="px-2.5 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-xs font-bold text-violet-300 transition flex items-center gap-1"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>New Split</span>
-            </button>
-          )}
+          <p className="text-[11px] text-zinc-400">
+            Your weekly split schedule (swipe or tap any day to preview & customize)
+          </p>
         </div>
 
         {/* Swipeable Horizontal Strip on Mobile, 7 cols on Desktop */}
