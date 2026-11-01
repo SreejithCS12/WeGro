@@ -15,11 +15,14 @@ import {
   Settings,
   Sparkles,
   Share2,
+  CloudOff,
+  RefreshCw,
+  CheckCircle2,
 } from "lucide-react";
-import { formatDisplayDate, formatDateToISO } from "@/lib/utils";
+import { formatDisplayDate, formatDateToISO, cn, scrollToTop } from "@/lib/utils";
 import { NavTab } from "@/components/navigation/BottomNav";
 import { WeGroLogo } from "@/components/ui/WeGroLogo";
-import { cn } from "@/lib/utils";
+import { SyncQueueState } from "@/lib/services/sync-queue";
 
 interface HeaderProps {
   currentDate: string;
@@ -35,6 +38,8 @@ interface HeaderProps {
   authUser?: any | null;
   onOpenAuth?: () => void;
   onOpenShare?: () => void;
+  syncQueueState?: SyncQueueState;
+  onTriggerSyncNow?: () => void;
 }
 
 export function Header({
@@ -51,6 +56,8 @@ export function Header({
   authUser,
   onOpenAuth,
   onOpenShare,
+  syncQueueState,
+  onTriggerSyncNow,
 }: HeaderProps) {
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
 
@@ -133,7 +140,14 @@ export function Header({
               return (
                 <button
                   key={tab.id}
-                  onClick={() => onTabChange(tab.id)}
+                  onClick={() => {
+                    if (isActive) {
+                      scrollToTop(true);
+                    } else {
+                      onTabChange(tab.id);
+                      scrollToTop(false);
+                    }
+                  }}
                   title={tab.label}
                   className={cn(
                     "relative flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all select-none",
@@ -190,6 +204,47 @@ export function Header({
 
         {/* Profile / Auth Area (Visible on Mobile & Tablet, compact on Desktop) */}
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          {/* Offline Sync Queue Pill */}
+          {syncQueueState && (
+            <>
+              {syncQueueState.isSyncing ? (
+                <div
+                  className="px-2 py-1 rounded-lg bg-blue-500/15 border border-blue-500/30 text-blue-300 text-[11px] font-medium flex items-center gap-1.5 animate-pulse"
+                  title="Syncing pending logs to cloud..."
+                >
+                  <RefreshCw className="w-3 h-3 text-blue-400 animate-spin" />
+                  <span className="hidden sm:inline">Syncing {syncQueueState.pendingCount}...</span>
+                </div>
+              ) : !syncQueueState.isOnline ? (
+                <button
+                  type="button"
+                  onClick={onTriggerSyncNow}
+                  className="px-2 py-1 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[11px] font-medium flex items-center gap-1.5 active:scale-95 cursor-pointer"
+                  title={
+                    syncQueueState.pendingCount > 0
+                      ? `${syncQueueState.pendingCount} logs queued offline. Will auto-sync when online.`
+                      : "You are currently offline. Changes are saved locally."
+                  }
+                >
+                  <CloudOff className="w-3 h-3 text-amber-400" />
+                  <span className="hidden sm:inline">
+                    {syncQueueState.pendingCount > 0 ? `${syncQueueState.pendingCount} Queued` : "Offline"}
+                  </span>
+                </button>
+              ) : syncQueueState.pendingCount > 0 ? (
+                <button
+                  type="button"
+                  onClick={onTriggerSyncNow}
+                  className="px-2 py-1 rounded-lg bg-violet-500/15 border border-violet-500/30 text-violet-300 text-[11px] font-medium flex items-center gap-1.5 active:scale-95 cursor-pointer hover:bg-violet-500/25 transition-colors"
+                  title="Pending logs ready to sync. Click to sync now."
+                >
+                  <RefreshCw className="w-3 h-3 text-violet-400" />
+                  <span className="hidden sm:inline">Sync ({syncQueueState.pendingCount})</span>
+                </button>
+              ) : null}
+            </>
+          )}
+
           {onOpenShare && (
             <button
               type="button"

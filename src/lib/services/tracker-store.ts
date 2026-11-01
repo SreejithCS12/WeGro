@@ -45,6 +45,7 @@ import {
   upsertWorkoutRoutine as supabaseUpsertRoutine,
   deleteWorkoutRoutine as supabaseDeleteRoutine,
 } from "@/lib/services/supabase-service";
+import { syncQueue, SyncQueueState } from "@/lib/services/sync-queue";
 import { createClient } from "@/lib/supabase/client";
 
 const STORAGE_KEY_PREFIX = "pft_v2_";
@@ -212,6 +213,18 @@ export function useTrackerStore() {
   const [authUser, setAuthUser] = useState<any | null>(null);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const [syncStatus, setSyncStatus] = useState<"idle" | "syncing" | "synced" | "offline">("idle");
+  const [syncQueueState, setSyncQueueState] = useState<SyncQueueState>(() => syncQueue.getState());
+
+  useEffect(() => {
+    const unsubscribe = syncQueue.subscribe((qState) => {
+      setSyncQueueState(qState);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    syncQueue.setUser(authUser);
+  }, [authUser]);
 
   const stateRef = useRef(state);
   stateRef.current = state;
@@ -237,6 +250,9 @@ export function useTrackerStore() {
     setSyncStatus("syncing");
 
     try {
+      // Flush offline sync queue first so local edits are saved remotely before fetching
+      await syncQueue.processQueue();
+
       // 1. Profile sync
       let profile = await fetchProfile(user.id);
       if (!profile) {
@@ -496,6 +512,7 @@ export function useTrackerStore() {
   // Auth actions
   const signOut = async () => {
     await supabaseSignOut();
+    syncQueue.clearQueue();
     setAuthUser(null);
     setSyncStatus("offline");
     if (typeof window !== "undefined") {
@@ -522,10 +539,10 @@ export function useTrackerStore() {
     saveState({ ...state, profile: updated });
 
     if (authUser) {
-      upsertProfile({
+      syncQueue.enqueue("UPSERT_PROFILE", {
         id: authUser.id,
         ...profileUpdates,
-      }).catch((e) => console.error("Error upserting profile:", e));
+      });
     }
   };
 
@@ -537,10 +554,10 @@ export function useTrackerStore() {
     if (authUser) {
       const goalData = { ...updated };
       delete (goalData as Partial<FitnessGoal>).user_id;
-      upsertFitnessGoal({
+      syncQueue.enqueue("UPSERT_GOAL", {
         ...goalData,
         user_id: authUser.id,
-      }).catch((e) => console.error("Error upserting goal:", e));
+      });
     }
   };
 
@@ -635,16 +652,12 @@ export function useTrackerStore() {
     saveState({ ...state, waterLogs: [newLog, ...state.waterLogs] });
 
     if (authUser) {
-      try {
-        await supabaseInsertWaterLog({
-          id: newId,
-          user_id: authUser.id,
-          entry_date: entryDate,
-          amount_ml: amountMl,
-        });
-      } catch (e) {
-        console.error("Error syncing water log to Supabase:", e);
-      }
+      syncQueue.enqueue("INSERT_WATER_LOG", {
+        id: newId,
+        user_id: authUser.id,
+        entry_date: entryDate,
+        amount_ml: amountMl,
+      });
     }
   };
 
@@ -655,11 +668,7 @@ export function useTrackerStore() {
     });
 
     if (authUser) {
-      try {
-        await supabaseDeleteWaterLog(id);
-      } catch (e) {
-        console.error("Error deleting water log from Supabase:", e);
-      }
+      syncQueue.enqueue("DELETE_WATER_LOG", { id });
     }
   };
 
@@ -677,31 +686,20 @@ export function useTrackerStore() {
     saveState({ ...state, foodLogs: [newLog, ...state.foodLogs] });
 
     if (authUser) {
-      try {
-        const saved = await supabaseInsertFoodLog({
-          id: newId,
-          user_id: authUser.id,
-          entry_date: log.entry_date,
-          meal_category: log.meal_category,
-          food_name_snapshot: log.food_name_snapshot,
-          quantity: log.quantity,
-          unit: log.unit,
-          calories: log.calories,
-          protein: log.protein,
-          carbohydrates: log.carbohydrates,
-          fat: log.fat,
-          notes: log.notes,
-        });
-
-        if (saved && saved.id && saved.id !== newId) {
-          setState((prev) => ({
-            ...prev,
-            foodLogs: prev.foodLogs.map((f) => (f.id === newId ? saved : f)),
-          }));
-        }
-      } catch (e) {
-        console.error("Error syncing food log to Supabase:", e);
-      }
+      syncQueue.enqueue("INSERT_FOOD_LOG", {
+        id: newId,
+        user_id: authUser.id,
+        entry_date: log.entry_date,
+        meal_category: log.meal_category,
+        food_name_snapshot: log.food_name_snapshot,
+        quantity: log.quantity,
+        unit: log.unit,
+        calories: log.calories,
+        protein: log.protein,
+        carbohydrates: log.carbohydrates,
+        fat: log.fat,
+        notes: log.notes,
+      });
     }
   };
 
@@ -713,11 +711,7 @@ export function useTrackerStore() {
     });
 
     if (authUser) {
-      try {
-        await supabaseDeleteFoodLog(id);
-      } catch (e) {
-        console.error("Error deleting food log from Supabase:", e);
-      }
+      syncQueue.enqueue("DELETE_FOOD_LOG", { id });
     }
   };
 
@@ -748,7 +742,7 @@ export function useTrackerStore() {
 
     if (authUser) {
       duplicatedLogs.forEach((dl) => {
-        supabaseInsertFoodLog({
+        syncQueue.enqueue("INSERT_FOOD_LOG", {
           id: dl.id,
           user_id: authUser.id,
           entry_date: dl.entry_date,
@@ -761,7 +755,7 @@ export function useTrackerStore() {
           carbohydrates: dl.carbohydrates,
           fat: dl.fat,
           notes: dl.notes,
-        }).catch((e) => console.error("Error duplicating food log to cloud:", e));
+        });
       });
     }
 
@@ -803,22 +797,18 @@ export function useTrackerStore() {
     });
 
     if (authUser) {
-      try {
-        await supabaseInsertWeightLog({
-          id: newId,
-          user_id: authUser.id,
-          entry_date: entryDate,
-          weight_kg: weightKg,
-          notes,
-        });
+      syncQueue.enqueue("INSERT_WEIGHT_LOG", {
+        id: newId,
+        user_id: authUser.id,
+        entry_date: entryDate,
+        weight_kg: weightKg,
+        notes,
+      });
 
-        await upsertProfile({
-          id: authUser.id,
-          latest_weight_kg: weightKg,
-        });
-      } catch (e) {
-        console.error("Error syncing weight log:", e);
-      }
+      syncQueue.enqueue("UPSERT_PROFILE", {
+        id: authUser.id,
+        latest_weight_kg: weightKg,
+      });
     }
   };
 
@@ -838,16 +828,12 @@ export function useTrackerStore() {
     });
 
     if (authUser) {
-      try {
-        await supabaseInsertMeasurementLog({
-          id: newId,
-          user_id: authUser.id,
-          entry_date: entryDate,
-          ...measurements,
-        });
-      } catch (e) {
-        console.error("Error syncing measurement log:", e);
-      }
+      syncQueue.enqueue("INSERT_MEASUREMENT_LOG", {
+        id: newId,
+        user_id: authUser.id,
+        entry_date: entryDate,
+        ...measurements,
+      });
     }
   };
 
@@ -880,7 +866,7 @@ export function useTrackerStore() {
     saveState({ ...state, routines: [...state.routines, newRoutine] });
 
     if (authUser) {
-      supabaseUpsertRoutine(newRoutine).catch((e) => console.error("Error upserting routine to cloud:", e));
+      syncQueue.enqueue("UPSERT_ROUTINE", newRoutine);
     }
 
     return newRoutine;
@@ -893,7 +879,7 @@ export function useTrackerStore() {
     });
 
     if (authUser) {
-      supabaseDeleteRoutine(routineId).catch((e) => console.error("Error deleting routine:", e));
+      syncQueue.enqueue("DELETE_ROUTINE", { id: routineId });
     }
   };
 
@@ -1128,8 +1114,8 @@ export function useTrackerStore() {
 
     if (authUser && completedSession) {
       const sess: WorkoutSession = completedSession;
-      supabaseSaveWorkoutSession(
-        {
+      syncQueue.enqueue("SAVE_WORKOUT_SESSION", {
+        session: {
           id: sess.id,
           user_id: authUser.id,
           routine_id: sess.routine_id,
@@ -1141,7 +1127,7 @@ export function useTrackerStore() {
           duration_seconds: sess.duration_seconds,
           notes: sess.notes,
         },
-        (sess.sets || []).map((s) => ({
+        sets: (sess.sets || []).map((s) => ({
           session_id: sess.id,
           exercise_id: resolveExerciseUUID(s.exercise_id, state.exercises),
           set_number: s.set_number,
@@ -1149,8 +1135,8 @@ export function useTrackerStore() {
           weight_kg: s.weight_kg,
           reps: s.reps,
           is_completed: s.is_completed,
-        }))
-      ).catch((e) => console.error("Error saving workout session to Supabase:", e));
+        })),
+      });
     }
   };
 
@@ -1162,9 +1148,7 @@ export function useTrackerStore() {
     saveState({ ...state, sessions: updatedSessions });
 
     if (authUser) {
-      supabaseDeleteWorkoutSession(sessionId).catch((e) =>
-        console.error("Error deleting session:", e)
-      );
+      syncQueue.enqueue("DELETE_WORKOUT_SESSION", { id: sessionId });
     }
   };
 
@@ -1208,6 +1192,8 @@ export function useTrackerStore() {
     authUser,
     isSyncing,
     syncStatus,
+    syncQueueState,
+    triggerSyncNow: () => syncQueue.processQueue(),
     activeWorkout,
     signOut,
     refreshCloudSync,

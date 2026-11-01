@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { Header } from "@/components/navigation/Header";
 import { DesktopSidebar } from "@/components/navigation/DesktopSidebar";
 import { BottomNav, NavTab } from "@/components/navigation/BottomNav";
-import { WeGroLogo } from "@/components/ui/WeGroLogo";
 import { EnergyCard } from "@/components/dashboard/EnergyCard";
 import { QuickActions } from "@/components/dashboard/QuickActions";
 import { HydrationCard } from "@/components/dashboard/HydrationCard";
@@ -26,7 +25,8 @@ import { ProgressView } from "@/components/progress/ProgressView";
 import { SettingsView } from "@/components/settings/SettingsView";
 import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
 import { useTrackerStore } from "@/lib/services/tracker-store";
-import { formatDateToISO, calculateActiveStreak } from "@/lib/utils";
+import { formatDateToISO, calculateActiveStreak, scrollToTop } from "@/lib/utils";
+import { calculateMilestoneBadges } from "@/lib/data/badges";
 import { MealCategory } from "@/types/database";
 import { applyTheme, getStoredTheme } from "@/lib/theme";
 
@@ -105,6 +105,7 @@ export default function Home() {
   })();
 
   const streakDays = calculateActiveStreak(activityDates, currentDate);
+  const milestoneSummary = calculateMilestoneBadges(store.state, streakDays);
 
   // Compute yesterday for quick meals copying
   const [yearNum, monthNum, dayNum] = currentDate.split("-").map(Number);
@@ -132,6 +133,24 @@ export default function Home() {
     ? "Rest Day"
     : todayRoutine?.name || "Resistance Training";
 
+  const handleTabChange = (tab: NavTab) => {
+    if (tab === currentTab) {
+      scrollToTop(true);
+    } else {
+      setCurrentTab(tab);
+      scrollToTop(false);
+    }
+  };
+
+  // Scroll view back to top whenever navigation tab changes
+  useEffect(() => {
+    scrollToTop(false);
+    const rafId = requestAnimationFrame(() => {
+      scrollToTop(false);
+    });
+    return () => cancelAnimationFrame(rafId);
+  }, [currentTab]);
+
   const handleStartWorkout = (
     routineId?: string,
     customName?: string,
@@ -143,7 +162,7 @@ export default function Home() {
     }>
   ) => {
     store.startWorkout(routineId, customName, customExercises);
-    setCurrentTab("workouts");
+    handleTabChange("workouts");
   };
 
   return (
@@ -154,7 +173,7 @@ export default function Home() {
       {/* Desktop Left Sidebar (Only visible on lg+ screens) */}
       <DesktopSidebar
         currentTab={currentTab}
-        onTabChange={setCurrentTab}
+        onTabChange={handleTabChange}
         hasActiveWorkout={Boolean(store.activeWorkout)}
         userName={store.state.profile.display_name}
         calorieTarget={dailyTotals.goal.calorie_target}
@@ -162,6 +181,8 @@ export default function Home() {
         authUser={store.authUser}
         onOpenAuth={() => setIsAuthOpen(true)}
         onSignOut={store.signOut}
+        syncQueueState={store.syncQueueState}
+        onTriggerSyncNow={store.triggerSyncNow}
       />
 
       {/* Main App Content Area */}
@@ -171,9 +192,9 @@ export default function Home() {
           currentDate={currentDate}
           onDateChange={setCurrentDate}
           userName={store.state.profile.display_name}
-          onOpenProfile={() => setCurrentTab("settings")}
+          onOpenProfile={() => handleTabChange("settings")}
           currentTab={currentTab}
-          onTabChange={setCurrentTab}
+          onTabChange={handleTabChange}
           hasActiveWorkout={Boolean(store.activeWorkout)}
           onQuickAddFood={() => handleOpenAddFood("lunch")}
           onQuickAddWater={() => store.addWater(currentDate, 250)}
@@ -181,6 +202,8 @@ export default function Home() {
           authUser={store.authUser}
           onOpenAuth={() => setIsAuthOpen(true)}
           onOpenShare={() => setIsShareModalOpen(true)}
+          syncQueueState={store.syncQueueState}
+          onTriggerSyncNow={store.triggerSyncNow}
         />
 
         {/* Main Scrollable View */}
@@ -218,7 +241,7 @@ export default function Home() {
                   todayRoutineName={todayRoutineName}
                   onToggleRestDay={isScheduleRestDay ? undefined : () => store.toggleRestDay(currentDate)}
                   onStartWorkout={() => handleStartWorkout()}
-                  onResumeWorkout={() => setCurrentTab("workouts")}
+                  onResumeWorkout={() => handleTabChange("workouts")}
                   onDiscardWorkout={store.discardWorkout}
                 />
 
@@ -283,7 +306,7 @@ export default function Home() {
                       todayRoutineName={todayRoutineName}
                       onToggleRestDay={isScheduleRestDay ? undefined : () => store.toggleRestDay(currentDate)}
                       onStartWorkout={() => handleStartWorkout()}
-                      onResumeWorkout={() => setCurrentTab("workouts")}
+                      onResumeWorkout={() => handleTabChange("workouts")}
                       onDiscardWorkout={store.discardWorkout}
                     />
 
@@ -313,11 +336,11 @@ export default function Home() {
                 onAddExerciseToSession={store.addExerciseToSession}
                 onFinishWorkout={(sessionId, notes) => {
                   store.finishWorkout(sessionId, notes);
-                  setCurrentTab("dashboard");
+                  handleTabChange("dashboard");
                 }}
                 onDiscardWorkout={(sessionId) => {
                   store.discardWorkout(sessionId);
-                  setCurrentTab("dashboard");
+                  handleTabChange("dashboard");
                 }}
               />
             ) : (
@@ -358,6 +381,7 @@ export default function Home() {
               completedSessions={completedSessions}
               onOpenWeightModal={() => setIsRecordWeightOpen(true)}
               onAddMeasurement={store.addMeasurementLog}
+              milestoneSummary={milestoneSummary}
             />
           </div>
         )}
@@ -441,7 +465,7 @@ export default function Home() {
           const created = store.addRoutine(routineData);
           if (autoStart && created) {
             store.startWorkout(created.id);
-            setCurrentTab("workouts");
+            handleTabChange("workouts");
           }
         }}
       />
@@ -470,7 +494,7 @@ export default function Home() {
       {/* Sticky Bottom Navigation Bar */}
       <BottomNav
         currentTab={currentTab}
-        onTabChange={setCurrentTab}
+        onTabChange={handleTabChange}
         hasActiveWorkout={Boolean(store.activeWorkout)}
       />
       </div>

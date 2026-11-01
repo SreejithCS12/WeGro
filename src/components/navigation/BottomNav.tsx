@@ -1,7 +1,7 @@
 "use client";
 
 import { LayoutDashboard, Dumbbell, Utensils, TrendingUp, Settings } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, scrollToTop } from "@/lib/utils";
 
 export type NavTab = "dashboard" | "workouts" | "nutrition" | "progress" | "settings";
 
@@ -34,7 +34,14 @@ export function BottomNav({
           return (
             <button
               key={tab.id}
-              onClick={() => onTabChange(tab.id)}
+              onClick={() => {
+                if (isActive) {
+                  scrollToTop(true);
+                } else {
+                  onTabChange(tab.id);
+                  scrollToTop(false);
+                }
+              }}
               className={cn(
                 "relative flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-all duration-150 select-none",
                 isActive

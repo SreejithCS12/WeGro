@@ -9,12 +9,15 @@ import {
   Play,
   Flame,
   Cloud,
+  CloudOff,
+  RefreshCw,
   LogOut,
   Sparkles,
 } from "lucide-react";
 import { NavTab } from "@/components/navigation/BottomNav";
 import { WeGroLogo } from "@/components/ui/WeGroLogo";
-import { cn } from "@/lib/utils";
+import { cn, scrollToTop } from "@/lib/utils";
+import { SyncQueueState } from "@/lib/services/sync-queue";
 
 interface DesktopSidebarProps {
   currentTab: NavTab;
@@ -26,6 +29,8 @@ interface DesktopSidebarProps {
   authUser?: any | null;
   onOpenAuth?: () => void;
   onSignOut?: () => void;
+  syncQueueState?: SyncQueueState;
+  onTriggerSyncNow?: () => void;
 }
 
 export function DesktopSidebar({
@@ -38,6 +43,8 @@ export function DesktopSidebar({
   authUser,
   onOpenAuth,
   onSignOut,
+  syncQueueState,
+  onTriggerSyncNow,
 }: DesktopSidebarProps) {
   const navItems = [
     { id: "dashboard" as const, label: "Dashboard", icon: LayoutDashboard },
@@ -79,7 +86,14 @@ export function DesktopSidebar({
             return (
               <button
                 key={item.id}
-                onClick={() => onTabChange(item.id)}
+                onClick={() => {
+                  if (isActive) {
+                    scrollToTop(true);
+                  } else {
+                    onTabChange(item.id);
+                    scrollToTop(false);
+                  }
+                }}
                 className={cn(
                   "w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all group",
                   isActive
@@ -147,7 +161,29 @@ export function DesktopSidebar({
                 {userName || "Sreejith"}
               </div>
               <div className="text-[10px] text-zinc-400 flex items-center gap-1.5 truncate">
-                {authUser ? (
+                {syncQueueState?.isSyncing ? (
+                  <span className="text-blue-400 flex items-center gap-1 font-medium animate-pulse">
+                    <RefreshCw className="w-2.5 h-2.5 animate-spin" />
+                    Syncing...
+                  </span>
+                ) : syncQueueState && !syncQueueState.isOnline ? (
+                  <span className="text-amber-400 flex items-center gap-1 font-medium">
+                    <CloudOff className="w-2.5 h-2.5" />
+                    Offline {syncQueueState.pendingCount > 0 ? `(${syncQueueState.pendingCount})` : ""}
+                  </span>
+                ) : syncQueueState && syncQueueState.pendingCount > 0 ? (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onTriggerSyncNow?.();
+                    }}
+                    className="text-violet-400 hover:text-violet-300 flex items-center gap-1 font-medium underline"
+                  >
+                    <RefreshCw className="w-2.5 h-2.5" />
+                    Sync ({syncQueueState.pendingCount})
+                  </button>
+                ) : authUser ? (
                   <span className="text-emerald-400 flex items-center gap-1 font-medium">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                     Cloud Synced

@@ -74,7 +74,7 @@ export function calculateActiveStreak(
   const [y, m, d] = currentDateISO.split("-").map(Number);
   const cur = new Date(y, m - 1, d);
 
-  let checkDate = new Date(cur);
+  const checkDate = new Date(cur);
   const pad = (n: number) => String(n).padStart(2, "0");
   const toISO = (dt: Date) =>
     `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}`;
@@ -90,6 +90,30 @@ export function calculateActiveStreak(
   }
 
   return streak;
+}
+
+export function scrollToTop(smooth: boolean = false): void {
+  if (typeof window === "undefined") return;
+  try {
+    if (smooth) {
+      window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
+    } else {
+      window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+    }
+  } catch {
+    window.scrollTo(0, 0);
+  }
+  if (document.documentElement) document.documentElement.scrollTop = 0;
+  if (document.body) document.body.scrollTop = 0;
+
+  const mainEl = document.querySelector("main");
+  if (mainEl && mainEl.scrollTop > 0) {
+    if (smooth) {
+      mainEl.scrollTo({ top: 0, behavior: "smooth" });
+    } else {
+      mainEl.scrollTop = 0;
+    }
+  }
 }
 
 

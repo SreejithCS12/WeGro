@@ -12,6 +12,8 @@ import {
   CartesianGrid,
 } from "recharts";
 import { BodyWeightLog, BodyMeasurementLog, WorkoutSession } from "@/types/database";
+import { MilestoneSummary } from "@/lib/data/badges";
+import { MilestoneBadgesCard } from "@/components/progress/MilestoneBadgesCard";
 
 interface ProgressViewProps {
   weightLogs: BodyWeightLog[];
@@ -19,6 +21,7 @@ interface ProgressViewProps {
   completedSessions: WorkoutSession[];
   onOpenWeightModal: () => void;
   onAddMeasurement: (date: string, measurements: Partial<BodyMeasurementLog>) => void;
+  milestoneSummary?: MilestoneSummary;
 }
 
 export function ProgressView({
@@ -27,6 +30,7 @@ export function ProgressView({
   completedSessions,
   onOpenWeightModal,
   onAddMeasurement,
+  milestoneSummary,
 }: ProgressViewProps) {
   // Sort weight logs ascending for charting
   const sortedWeights = [...weightLogs].sort((a, b) =>
@@ -163,6 +167,9 @@ export function ProgressView({
           )}
         </div>
       </div>
+
+      {/* Gamified Milestones & Badges Hall of Fame */}
+      {milestoneSummary && <MilestoneBadgesCard summary={milestoneSummary} />}
 
       {/* 2-Column Responsive Grid on Tablet/Desktop */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
