@@ -70,6 +70,15 @@ export default function Home() {
     }
   }, [store.isLoaded, store.state.profile?.theme_color]);
 
+  // Scroll view back to top whenever navigation tab changes
+  useEffect(() => {
+    scrollToTop(false);
+    const rafId = requestAnimationFrame(() => {
+      scrollToTop(false);
+    });
+    return () => cancelAnimationFrame(rafId);
+  }, [currentTab]);
+
   if (!store.isLoaded) {
     return <SplashScreen isFadingOut={false} />;
   }
@@ -141,15 +150,6 @@ export default function Home() {
       scrollToTop(false);
     }
   };
-
-  // Scroll view back to top whenever navigation tab changes
-  useEffect(() => {
-    scrollToTop(false);
-    const rafId = requestAnimationFrame(() => {
-      scrollToTop(false);
-    });
-    return () => cancelAnimationFrame(rafId);
-  }, [currentTab]);
 
   const handleStartWorkout = (
     routineId?: string,

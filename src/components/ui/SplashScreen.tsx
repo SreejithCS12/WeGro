@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 
 const MOTIVATIONAL_QUOTES = [
   "Consistency is your superpower.",
@@ -17,15 +17,12 @@ interface SplashScreenProps {
 
 export function SplashScreen({ isFadingOut }: SplashScreenProps) {
   const [mounted, setMounted] = useState(false);
-
-  // Pick a consistent random quote per session
-  const quote = useMemo(() => {
-    const idx = Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length);
-    return MOTIVATIONAL_QUOTES[idx];
-  }, []);
+  const [quote, setQuote] = useState(MOTIVATIONAL_QUOTES[0]);
 
   useEffect(() => {
     setMounted(true);
+    const idx = Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length);
+    setQuote(MOTIVATIONAL_QUOTES[idx]);
   }, []);
 
   return (
@@ -122,7 +119,7 @@ export function SplashScreen({ isFadingOut }: SplashScreenProps) {
           mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"
         }`}
       >
-        <p className="text-xs font-mono text-zinc-500 italic">
+        <p className="text-xs font-mono text-zinc-500 italic" suppressHydrationWarning>
           "{quote}"
         </p>
       </div>
