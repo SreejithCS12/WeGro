@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { Header } from "@/components/navigation/Header";
 import { DesktopSidebar } from "@/components/navigation/DesktopSidebar";
 import { BottomNav, NavTab } from "@/components/navigation/BottomNav";
@@ -79,7 +79,7 @@ export default function Home() {
   const completedSessions = store.state.sessions.filter((s) => s.status === "completed");
 
   // Calculate active daily consistency streak
-  const activityDates = useMemo(() => {
+  const activityDates = (() => {
     const dates = new Set<string>();
     store.state.foodLogs.forEach((f) => dates.add(f.entry_date));
     store.state.sessions.forEach((s) => {
@@ -87,11 +87,9 @@ export default function Home() {
     });
     store.state.waterLogs.forEach((w) => dates.add(w.entry_date));
     return Array.from(dates);
-  }, [store.state.foodLogs, store.state.sessions, store.state.waterLogs]);
+  })();
 
-  const streakDays = useMemo(() => {
-    return calculateActiveStreak(activityDates, currentDate);
-  }, [activityDates, currentDate]);
+  const streakDays = calculateActiveStreak(activityDates, currentDate);
 
   // Compute yesterday for quick meals copying
   const [yearNum, monthNum, dayNum] = currentDate.split("-").map(Number);
