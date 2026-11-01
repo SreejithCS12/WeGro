@@ -1,6 +1,6 @@
 "use client";
 
-import { PieChart, Plus, Zap } from "lucide-react";
+import { PieChart, Plus, Zap, Barcode } from "lucide-react";
 import { Food, FoodLog, FitnessGoal } from "@/types/database";
 import { formatCalories } from "@/lib/utils";
 
@@ -10,6 +10,7 @@ interface NutritionViewProps {
   goal: FitnessGoal;
   onOpenAddFoodModal?: () => void;
   onOpenQuickAdd?: () => void;
+  onOpenBarcodeScan?: () => void;
 }
 
 export function NutritionView({
@@ -17,6 +18,7 @@ export function NutritionView({
   goal,
   onOpenAddFoodModal,
   onOpenQuickAdd,
+  onOpenBarcodeScan,
 }: NutritionViewProps) {
   const totalCalories = foodLogs.reduce((acc, f) => acc + f.calories, 0);
   const totalProtein = foodLogs.reduce((acc, f) => acc + f.protein, 0);
@@ -56,6 +58,16 @@ export function NutritionView({
             <span className="hidden sm:inline text-xs font-mono font-medium text-zinc-400 mr-1 shrink-0 whitespace-nowrap">
               <span className="text-zinc-200 font-bold">{formatCalories(totalCalories)}</span> / {formatCalories(goal.calorie_target)} kcal
             </span>
+            {onOpenBarcodeScan && (
+              <button
+                onClick={onOpenBarcodeScan}
+                className="flex-1 sm:flex-initial py-1.5 sm:py-1 px-3 sm:px-2.5 rounded-xl bg-violet-500/15 hover:bg-violet-500/25 text-violet-300 border border-violet-500/30 font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm transition-all active:scale-95 whitespace-nowrap"
+                title="Scan packaged food barcode"
+              >
+                <Barcode className="w-3.5 h-3.5" />
+                <span>Scan</span>
+              </button>
+            )}
             {onOpenQuickAdd && (
               <button
                 onClick={onOpenQuickAdd}

@@ -1,16 +1,17 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { X, Search, Plus, Sparkles, Check, Zap, Scale, Flame, ArrowRight } from "lucide-react";
+import { X, Search, Plus, Sparkles, Check, Zap, Scale, Flame, ArrowRight, Barcode, AlertCircle } from "lucide-react";
 import { Food, MealCategory } from "@/types/database";
 import { formatCalories } from "@/lib/utils";
+import { BarcodeScannerModal } from "./BarcodeScannerModal";
 
 interface AddFoodModalProps {
   isOpen: boolean;
   onClose: () => void;
   foods: Food[];
   initialCategory?: MealCategory;
-  initialMode?: "library" | "quickAdd";
+  initialMode?: "library" | "quickAdd" | "scan";
   onLogFood: (data: {
     meal_category: MealCategory;
     food_id?: string | null;
@@ -61,23 +62,95 @@ export function AddFoodModal({
   const [customCalories, setCustomCalories] = useState("");
   const [customProtein, setCustomProtein] = useState("");
   const [customCarbs, setCustomCarbs] = useState("");
-  const [customFat, setCustomFat] = useState("");
+   const [customFat, setCustomFat] = useState("");
   const [customHouseholdUnit, setCustomHouseholdUnit] = useState("");
   const [customHouseholdGrams, setCustomHouseholdGrams] = useState("");
+
+  // Barcode Scanner State & Notifications
+  const [isBarcodeScannerOpen, setIsBarcodeScannerOpen] = useState(false);
+  const [bannerNotice, setBannerNotice] = useState<{ type: "success" | "warning"; text: string } | null>(null);
 
   // Sync state whenever modal opens or props change
   useEffect(() => {
     if (isOpen) {
       setCategory(initialCategory);
-      setActiveTab(initialMode || "library");
+      setActiveTab(initialMode === "scan" ? "library" : initialMode || "library");
       setSearchQuery("");
       setSelectedCategoryFilter("All");
       setSelectedFood(null);
       setUnitMode("household");
       setQuantity(1);
       setQuickName("");
+      setBannerNotice(null);
+      if (initialMode === "scan") {
+        setIsBarcodeScannerOpen(true);
+      }
     }
   }, [isOpen, initialCategory, initialMode]);
+
+  // Handle scanned product found via OpenFoodFacts
+  const handleScannedProductFound = (scannedFood: Food) => {
+    setIsBarcodeScannerOpen(false);
+
+    // Save into custom food database if not already existing
+    const exists = foods.some(
+      (f) =>
+        f.name.toLowerCase() === scannedFood.name.toLowerCase() ||
+        (f.notes && scannedFood.notes && f.notes === scannedFood.notes)
+    );
+
+    if (!exists) {
+      onCreateCustomFood({
+        name: scannedFood.name,
+        category: scannedFood.category || "Packaged Food",
+        serving_description: scannedFood.serving_description,
+        reference_quantity: scannedFood.reference_quantity,
+        reference_unit: scannedFood.reference_unit,
+        calories: scannedFood.calories,
+        protein: scannedFood.protein,
+        carbohydrates: scannedFood.carbohydrates,
+        fat: scannedFood.fat,
+        household_unit: scannedFood.household_unit,
+        household_grams: scannedFood.household_grams,
+        notes: scannedFood.notes,
+      });
+    }
+
+    setSelectedFood(scannedFood);
+    if (scannedFood.household_unit && scannedFood.household_grams) {
+      setUnitMode("household");
+      setQuantity(1);
+    } else {
+      setUnitMode("grams");
+      setQuantity(scannedFood.reference_quantity || 100);
+    }
+
+    setActiveTab("library");
+    setSearchQuery(scannedFood.name);
+    setBannerNotice({
+      type: "success",
+      text: `Scanned "${scannedFood.name}" (${scannedFood.calories} kcal / ${scannedFood.serving_description})`,
+    });
+  };
+
+  // Handle barcode not found in OpenFoodFacts
+  const handleScannedProductNotFound = (barcode: string) => {
+    setIsBarcodeScannerOpen(false);
+    setActiveTab("custom");
+    setCustomName("");
+    setCustomCategory("Packaged Food");
+    setCustomServing("100g");
+    setCustomHouseholdUnit("1 pack");
+    setCustomHouseholdGrams("");
+    setCustomCalories("");
+    setCustomProtein("");
+    setCustomCarbs("");
+    setCustomFat("");
+    setBannerNotice({
+      type: "warning",
+      text: `Barcode "${barcode}" not found in OpenFoodFacts. You can enter its package values below to save it.`,
+    });
+  };
 
   // Handle selecting a food item
   const handleSelectFood = (food: Food) => {
@@ -277,7 +350,7 @@ export function AddFoodModal({
         </div>
 
         {/* Mode Navigation Tabs */}
-        <div className="px-4 pt-2 pb-1 bg-[#18181b] border-b border-[#27272a] flex items-center justify-between gap-2">
+        <div className="px-4 pt-2 pb-1 bg-[#18181b] border-b border-[#27272a] flex items-center justify-between gap-2 overflow-x-auto scrollbar-none">
           <div className="flex items-center gap-1">
             <button
               type="button"
@@ -318,6 +391,16 @@ export function AddFoodModal({
               <span>+ Custom</span>
             </button>
           </div>
+
+          <button
+            type="button"
+            onClick={() => setIsBarcodeScannerOpen(true)}
+            className="py-1.5 px-3 rounded-xl text-xs font-bold transition flex items-center gap-1.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white shadow-md shadow-violet-600/20 active:scale-95 shrink-0"
+            title="Scan barcode on packaged food via camera"
+          >
+            <Barcode className="w-3.5 h-3.5" />
+            <span>Scan Barcode</span>
+          </button>
         </div>
 
         {/* Meal Category Bar */}
@@ -353,19 +436,57 @@ export function AddFoodModal({
           </div>
         </div>
 
+        {/* Scanned / Lookup Status Notification Banner */}
+        {bannerNotice && (
+          <div
+            className={`mx-4 mt-2.5 p-2.5 rounded-xl border text-xs flex items-center justify-between gap-2 animate-fade-in ${
+              bannerNotice.type === "success"
+                ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-300"
+                : "bg-amber-500/15 border-amber-500/30 text-amber-300"
+            }`}
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              {bannerNotice.type === "success" ? (
+                <Check className="w-4 h-4 shrink-0 text-emerald-400" />
+              ) : (
+                <AlertCircle className="w-4 h-4 shrink-0 text-amber-400" />
+              )}
+              <span className="truncate">{bannerNotice.text}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setBannerNotice(null)}
+              className="p-1 rounded-lg hover:bg-black/20 text-zinc-400 hover:text-white transition"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
+
         {/* Tab 1: Food Library Search & Dual Unit Portioning */}
         {activeTab === "library" && (
           <div className="flex-1 overflow-y-auto p-4 space-y-3.5">
-            {/* Search Input */}
-            <div className="relative">
-              <Search className="w-4 h-4 absolute left-3 top-3 text-zinc-400" />
-              <input
-                type="text"
-                placeholder="Search Idli, Dosa, Puttu, Roti, Rice, Chicken, Dal, Whey..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 bg-[#18181b] border border-[#27272a] focus:border-violet-500 rounded-xl text-xs text-white placeholder-zinc-500 outline-none"
-              />
+            {/* Search Input & Scan Button */}
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Search className="w-4 h-4 absolute left-3 top-2.5 text-zinc-400" />
+                <input
+                  type="text"
+                  placeholder="Search Idli, Dosa, Puttu, Roti, Rice, Chicken, Dal, Whey..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2 bg-[#18181b] border border-[#27272a] focus:border-violet-500 rounded-xl text-xs text-white placeholder-zinc-500 outline-none"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsBarcodeScannerOpen(true)}
+                className="px-3 py-2 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 active:scale-95 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-md shadow-violet-600/20 shrink-0"
+                title="Scan Barcode via Camera"
+              >
+                <Barcode className="w-4 h-4" />
+                <span className="hidden xs:inline">Scan</span>
+              </button>
             </div>
 
             {/* Category Filter Chips */}
@@ -427,18 +548,29 @@ export function AddFoodModal({
               })}
 
               {filteredFoods.length === 0 && (
-                <div className="text-center py-6 space-y-2">
+                <div className="text-center py-6 space-y-2.5">
                   <p className="text-xs text-zinc-400">No foods found matching "{searchQuery}"</p>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCustomName(searchQuery);
-                      setActiveTab("custom");
-                    }}
-                    className="text-xs font-bold text-emerald-400 hover:underline"
-                  >
-                    + Create "{searchQuery}" as Custom Food
-                  </button>
+                  <div className="flex items-center justify-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCustomName(searchQuery);
+                        setActiveTab("custom");
+                      }}
+                      className="text-xs font-bold text-emerald-400 hover:underline"
+                    >
+                      + Create "{searchQuery}"
+                    </button>
+                    <span className="text-zinc-600">·</span>
+                    <button
+                      type="button"
+                      onClick={() => setIsBarcodeScannerOpen(true)}
+                      className="text-xs font-bold text-violet-400 hover:underline flex items-center gap-1"
+                    >
+                      <Barcode className="w-3.5 h-3.5" />
+                      <span>Scan Barcode</span>
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -886,6 +1018,14 @@ export function AddFoodModal({
             </button>
           </form>
         )}
+
+        {/* Barcode Scanner Viewfinder Modal */}
+        <BarcodeScannerModal
+          isOpen={isBarcodeScannerOpen}
+          onClose={() => setIsBarcodeScannerOpen(false)}
+          onProductFound={handleScannedProductFound}
+          onProductNotFound={handleScannedProductNotFound}
+        />
       </div>
     </div>
   );

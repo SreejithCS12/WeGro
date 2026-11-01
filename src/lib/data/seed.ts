@@ -1425,6 +1425,21 @@ export const INITIAL_FOODS: Omit<Food, "created_at">[] = [
   "notes": "Zero-sugar freshly brewed black coffee or espresso"
 },
   {
+  "id": "f-black-coffee-sugar",
+  "name": "Black Coffee (with 1 tsp Sugar)",
+  "category": "Beverages",
+  "serving_description": "1 cup (approx 200ml)",
+  "reference_quantity": 200,
+  "reference_unit": "ml",
+  "calories": 25,
+  "protein": 0.3,
+  "carbohydrates": 5.8,
+  "fat": 0.0,
+  "household_unit": "cup",
+  "household_grams": 200,
+  "notes": "Freshly brewed black coffee or espresso with 1 tsp (~5g) sugar"
+},
+  {
   "id": "f-filter-coffee",
   "name": "South Indian Filter Coffee (with Milk & Sugar)",
   "category": "Beverages",
@@ -1453,6 +1468,21 @@ export const INITIAL_FOODS: Omit<Food, "created_at">[] = [
   "household_unit": "cup",
   "household_grams": 200,
   "notes": "Steeped black tea without milk or sugar"
+},
+  {
+  "id": "f-black-tea-sugar",
+  "name": "Black Tea (with 1 tsp Sugar)",
+  "category": "Beverages",
+  "serving_description": "1 cup (approx 200ml)",
+  "reference_quantity": 200,
+  "reference_unit": "ml",
+  "calories": 24,
+  "protein": 0.2,
+  "carbohydrates": 5.6,
+  "fat": 0.0,
+  "household_unit": "cup",
+  "household_grams": 200,
+  "notes": "Steeped black tea with 1 tsp (~5g) sugar"
 },
   {
   "id": "f-sulaimani-tea",
