@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Header } from "@/components/navigation/Header";
 import { DesktopSidebar } from "@/components/navigation/DesktopSidebar";
 import { BottomNav, NavTab } from "@/components/navigation/BottomNav";
@@ -16,6 +16,7 @@ import { RecordWeightModal } from "@/components/modals/RecordWeightModal";
 import { CopyMealsModal } from "@/components/modals/CopyMealsModal";
 import { CreateRoutineModal } from "@/components/modals/CreateRoutineModal";
 import { AuthModal } from "@/components/auth/AuthModal";
+import { ShareDayModal } from "@/components/modals/ShareDayModal";
 import { WorkoutView } from "@/components/workout/WorkoutView";
 import { ActiveWorkoutView } from "@/components/workout/ActiveWorkoutView";
 import { NutritionView } from "@/components/nutrition/NutritionView";
@@ -23,7 +24,7 @@ import { ProgressView } from "@/components/progress/ProgressView";
 import { SettingsView } from "@/components/settings/SettingsView";
 import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
 import { useTrackerStore } from "@/lib/services/tracker-store";
-import { formatDateToISO } from "@/lib/utils";
+import { formatDateToISO, calculateActiveStreak } from "@/lib/utils";
 import { MealCategory } from "@/types/database";
 import { applyTheme, getStoredTheme } from "@/lib/theme";
 
@@ -41,6 +42,7 @@ export default function Home() {
   const [isCopyMealsOpen, setIsCopyMealsOpen] = useState(false);
   const [isCreateRoutineOpen, setIsCreateRoutineOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
   useEffect(() => {
     if (store.isLoaded) {
@@ -75,6 +77,21 @@ export default function Home() {
   const dayFoodLogs = store.state.foodLogs.filter((f) => f.entry_date === currentDate);
   const dayWaterLogs = store.state.waterLogs.filter((w) => w.entry_date === currentDate);
   const completedSessions = store.state.sessions.filter((s) => s.status === "completed");
+
+  // Calculate active daily consistency streak
+  const activityDates = useMemo(() => {
+    const dates = new Set<string>();
+    store.state.foodLogs.forEach((f) => dates.add(f.entry_date));
+    store.state.sessions.forEach((s) => {
+      if (s.status === "completed") dates.add(s.entry_date);
+    });
+    store.state.waterLogs.forEach((w) => dates.add(w.entry_date));
+    return Array.from(dates);
+  }, [store.state.foodLogs, store.state.sessions, store.state.waterLogs]);
+
+  const streakDays = useMemo(() => {
+    return calculateActiveStreak(activityDates, currentDate);
+  }, [activityDates, currentDate]);
 
   // Compute yesterday for quick meals copying
   const [yearNum, monthNum, dayNum] = currentDate.split("-").map(Number);
@@ -147,6 +164,7 @@ export default function Home() {
           onQuickStartWorkout={() => handleStartWorkout()}
           authUser={store.authUser}
           onOpenAuth={() => setIsAuthOpen(true)}
+          onOpenShare={() => setIsShareModalOpen(true)}
         />
 
         {/* Main Scrollable View */}
@@ -410,6 +428,17 @@ export default function Home() {
             setCurrentTab("workouts");
           }
         }}
+      />
+
+      {/* 1-Tap Day Summary Story Card Modal */}
+      <ShareDayModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        dateStr={currentDate}
+        userName={store.state.profile.display_name}
+        dailyTotals={dailyTotals}
+        completedSessions={completedSessions.filter((s) => s.entry_date === currentDate)}
+        streakDays={streakDays}
       />
 
       {/* Cloud Authentication Modal */}

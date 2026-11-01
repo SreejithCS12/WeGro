@@ -14,6 +14,7 @@ import {
   TrendingUp,
   Settings,
   Sparkles,
+  Share2,
 } from "lucide-react";
 import { formatDisplayDate, formatDateToISO } from "@/lib/utils";
 import { NavTab } from "@/components/navigation/BottomNav";
@@ -33,6 +34,7 @@ interface HeaderProps {
   onQuickStartWorkout?: () => void;
   authUser?: any | null;
   onOpenAuth?: () => void;
+  onOpenShare?: () => void;
 }
 
 export function Header({
@@ -48,6 +50,7 @@ export function Header({
   onQuickStartWorkout,
   authUser,
   onOpenAuth,
+  onOpenShare,
 }: HeaderProps) {
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
 
@@ -186,7 +189,19 @@ export function Header({
         </div>
 
         {/* Profile / Auth Area (Visible on Mobile & Tablet, compact on Desktop) */}
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          {onOpenShare && (
+            <button
+              type="button"
+              onClick={onOpenShare}
+              className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-lg bg-gradient-to-r from-violet-600/20 to-fuchsia-600/20 hover:from-violet-600/30 hover:to-fuchsia-600/30 border border-violet-500/30 text-violet-300 text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm active:scale-95"
+              title="Share Daily Summary (Instagram Story / WhatsApp)"
+            >
+              <Share2 className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Share Recap</span>
+            </button>
+          )}
+
           {!authUser && onOpenAuth && (
             <button
               onClick={onOpenAuth}

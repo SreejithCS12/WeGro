@@ -65,3 +65,31 @@ export function isValidUUID(uuid?: string | null): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(uuid);
 }
 
+export function calculateActiveStreak(
+  datesWithActivity: string[],
+  currentDateISO: string = formatDateToISO(new Date())
+): number {
+  const activeSet = new Set(datesWithActivity);
+  let streak = 0;
+  const [y, m, d] = currentDateISO.split("-").map(Number);
+  const cur = new Date(y, m - 1, d);
+
+  let checkDate = new Date(cur);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const toISO = (dt: Date) =>
+    `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}`;
+
+  // If current date has no logs yet, start check from yesterday so morning doesn't reset streak
+  if (!activeSet.has(toISO(checkDate))) {
+    checkDate.setDate(checkDate.getDate() - 1);
+  }
+
+  while (activeSet.has(toISO(checkDate))) {
+    streak++;
+    checkDate.setDate(checkDate.getDate() - 1);
+  }
+
+  return streak;
+}
+
+
