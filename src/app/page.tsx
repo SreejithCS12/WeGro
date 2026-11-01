@@ -17,6 +17,7 @@ import { CopyMealsModal } from "@/components/modals/CopyMealsModal";
 import { CreateRoutineModal } from "@/components/modals/CreateRoutineModal";
 import { AuthModal } from "@/components/auth/AuthModal";
 import { ShareDayModal } from "@/components/modals/ShareDayModal";
+import { PWAInstallPrompt } from "@/components/ui/PWAInstallPrompt";
 import { WorkoutView } from "@/components/workout/WorkoutView";
 import { ActiveWorkoutView } from "@/components/workout/ActiveWorkoutView";
 import { NutritionView } from "@/components/nutrition/NutritionView";
@@ -445,6 +446,9 @@ export default function Home() {
         onClose={() => setIsAuthOpen(false)}
         onSuccess={() => setIsAuthOpen(false)}
       />
+
+      {/* In-App PWA Install Banner */}
+      <PWAInstallPrompt />
 
       {/* Sticky Bottom Navigation Bar */}
       <BottomNav
