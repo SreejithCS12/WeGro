@@ -39,20 +39,6 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark h-full antialiased" suppressHydrationWarning>
-      <head>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              try {
-                const t = localStorage.getItem('wegro_theme');
-                if (t && ['purple', 'red', 'orange', 'blue', 'yellow'].includes(t)) {
-                  document.documentElement.setAttribute('data-theme', t);
-                }
-              } catch (e) {}
-            `,
-          }}
-        />
-      </head>
       <body className="min-h-full flex flex-col bg-[#09090b] text-[#f4f4f5]">
         {children}
       </body>
